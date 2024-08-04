@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Divisão de Inventário</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: linear-gradient(to bottom right, #e0ffe0, #000000);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            table-layout: fixed;
+        }
+        th, td {
+            padding: 10px;
+            border: 2px solid #004d00;
+            text-align: center;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #ccffcc;
+            color: #003300;
+            border-color: #004d00;
+        }
+        td {
+            background-color: #e6ffe6;
+            border-color: #008000;
+        }
+        input[type="text"] {
+            width: 200px;
+            background-color: #f0fff0;
+            border: 1px solid #00cc00;
+        }
+        input[type="number"] {
+            width: 60px;
+            background-color: #f0fff0;
+            border: 1px solid #00cc00;
+        }
+        input[type="text"].percent {
+            width: 80px;
+            background-color: #f0fff0;
+            border: 1px solid #00cc00;
+        }
+        textarea {
+            width: 100%;
+            height: 60px;
+            box-sizing: border-box;
+            resize: none;
+            overflow: hidden;
+            background-color: #f0fff0;
+            border: 1px solid #00cc00;
+        }
+        h1 {
+            color: #003300;
+        }
+        h2 {
+            color: #00cc00;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #003300;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #002200;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .warning {
+            color: yellow;
+            font-weight: bold;
+        }
+        #gif {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Divisão de Inventário</h1>
+
+<!-- Campos adicionais -->
+<div>
+    <label for="inventarianteNome">Nome do Inventariante: </label>
+    <input type="text" id="inventarianteNome" placeholder="Digite o nome do inventariante" style="width: 400px;">
+</div>
+
+<div style="margin-top: 10px;">
+    <label for="inventarianteCpf">CPF do Inventariante: </label>
+    <input type="text" id="inventarianteCpf" placeholder="999.999.999-99" maxlength="14" oninput="formatarCPF(this)">
+</div>
+
+<div style="margin-top: 10px;">
+    <label for="data">Data: </label>
+    <input type="text" id="data" placeholder="XX/XX/XXXX" maxlength="10" oninput="formatarData(this)">
+</div>
+
+<div style="margin-top: 10px;">
+    <label for="funcionarioNome">Nome do Funcionário Caixa: </label>
+    <input type="text" id="funcionarioNome" placeholder="Digite o nome do funcionário caixa" style="width: 400px;">
+</div>
+
+<div style="margin-top: 10px;">
+    <label for="herdeiros">Número de Herdeiros: </label>
+    <input type="number" id="herdeiros" value="1" min="1" max="999" oninput="gerarLinhas()">
+</div>
+
+<div style="margin-top: 10px;">
+    <label for="total">Valor Total a ser Dividido (R$): </label>
+    <input type="text" id="total" value="0,00" oninput="formatarCampoValor(this); gerarLinhas()">
+</div>
+
+<div id="errorMsg" class="error"></div>
+<div id="warningMsg" class="warning"></div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>%</th>
+            <th>Cota (R$)</th>
+        </tr>
+    </thead>
+    <tbody id="tabelaHerdeiros">
+        <!-- Linhas serão geradas dinamicamente aqui -->
+    </tbody>
+    <tfoot>
+        <tr>
+            <td>Total</td>
+            <td id="totalPorcentagem">0%</td>
+            <td id="totalCota">R$ 0,00</td>
+        </tr>
+    </tfoot>
+</table>
+
+<!-- Botões de Imprimir e Gerar PDF -->
+<button onclick="window.print()">Imprimir 🖨️</button>
+<button onclick="generatePDF()">Gerar PDF 📊</button>
+
+<!-- Campo para o número de telefone -->
+<input type="text" id="phoneNumber" placeholder="(XX)X.XXXX.XXXX" oninput="formatarTelefone(this)">
+
+<!-- Campo para o e-mail -->
+<input type="text" id="email" placeholder="Digite o seu e-mail">
+
+<!-- Botão para enviar via WhatsApp -->
+<button onclick="sendViaWhatsApp()">Enviar via WhatsApp 📲</button>
+
+<!-- Botão para enviar via E-mail -->
+<button onclick="sendViaEmail()">Enviar via E-mail 📧</button>
+
+<img id="gif" src="https://raw.githubusercontent.com/thiagortc16/Public/main/6mb.gif" alt="Celebration GIF">
+<audio id="audio" src="https://raw.githubusercontent.com/thiagortc16/Public/main/wowFormatado.mp3"></audio>
+
+<script>
+    function formatarValor(valor) {
+        return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    function formatarCampoValor(campo) {
+        let valor = campo.value.replace(/\D/g, '');
+        valor = (valor / 100).toFixed(2) + '';
+        valor = valor.replace('.', ',');
+        valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+        campo.value = valor;
+    }
+
+    function obterValorNumericoFormatado(valor) {
+        return parseFloat(valor.replace(/\./g, '').replace(',', '.'));
+    }
+
+    function gerarLinhas() {
+        const herdeiros = document.getElementById('herdeiros').value;
+        const tabelaHerdeiros = document.getElementById('tabelaHerdeiros');
+        tabelaHerdeiros.innerHTML = '';
+
+        for (let i = 0; i < herdeiros; i++) {
+            const linha = document.createElement('tr');
+            linha.innerHTML = `
+                <td><textarea placeholder="Nome do Herdeiro"></textarea></td>
+                <td><input type="text" class="percent" value="0" oninput="substituirPontoPorVirgula(this); calcularCotas()">%</td>
+                <td class="cota">R$ 0,00</td>
+            `;
+            tabelaHerdeiros.appendChild(linha);
+        }
+    }
+
+    function substituirPontoPorVirgula(campo) {
+        campo.value = campo.value.replace('.', ',');
+    }
+
+    function calcularCotas() {
+        const total = obterValorNumericoFormatado(document.getElementById('total').value) || 0;
+        const herdeiros = document.querySelectorAll('#tabelaHerdeiros tr');
+        let totalPorcentagem = 0;
+        let totalCota = 0;
+
+        herdeiros.forEach(tr => {
+            const porcentagem = parseFloat(tr.querySelector('td:nth-child(2) input').value.replace(',', '.')) || 0;
+            totalPorcentagem += porcentagem;
+            const cota = (total * porcentagem / 100).toFixed(10); // Arredondamento para 10 casas decimais
+            tr.querySelector('.cota').innerText = formatarValor(parseFloat(cota));
+            totalCota += parseFloat(cota);
+        });
+
+        totalPorcentagem = Math.round(totalPorcentagem * 10000000000) / 10000000000; // Arredondar para 10 casas decimais
+
+        document.getElementById('totalPorcentagem').innerText = `${totalPorcentagem.toFixed(10)}%`; // Arredondamento para 10 casas decimais
+        document.getElementById('totalCota').innerText = formatarValor(totalCota);
+
+        const errorMsg = document.getElementById('errorMsg');
+        const warningMsg = document.getElementById('warningMsg');
+        
+        if (totalPorcentagem > 100) {
+            errorMsg.innerText = 'Erro: A soma das porcentagens ultrapassa 100%!';
+            warningMsg.innerText = '';
+        } else if (totalCota > total) {
+            errorMsg.innerText = 'Erro: A soma das cotas ultrapassa o valor total a ser dividido!';
+            warningMsg.innerText = '';
+        } else {
+            errorMsg.innerText = '';
+            if (totalPorcentagem < 100) {
+                warningMsg.innerText = 'Aviso: A soma das porcentagens ainda não atingiu 100%.';
+            } else {
+                warningMsg.innerText = '';
+                if (totalPorcentagem === 100) {
+                    mostrarGif();
+                }
+            }
+        }
+    }
+
+    function mostrarGif() {
+        const gif = document.getElementById('gif');
+        const audio = document.getElementById('audio');
+        gif.style.display = 'block';
+        audio.play().catch(error => {
+            console.error('Erro ao tentar tocar o áudio:', error);
+        });
+        setTimeout(() => {
+            gif.style.display = 'none';
+        }, 5000); // O GIF desaparece após 5 segundos
+    }
+
+    function formatarCPF(input) {
+        let cpf = input.value.replace(/\D/g, '');
+        if (cpf.length <= 11) {
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+            cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+        }
+        input.value = cpf;
+    }
+
+    function formatarData(input) {
+        let data = input.value.replace(/\D/g, '');
+        if (data.length <= 8) {
+            data = data.replace(/(\d{2})(\d)/, '$1/$2');
+            data = data.replace(/(\d{2})(\d)/, '$1/$2');
+            data = data.replace(/(\d{2})(\d{4})$/, '$1/$2');
+        }
+        input.value = data.slice(0, 10); // Garantir que não exceda 10 dígitos
+    }
+
+    function formatarTelefone(input) {
+        let telefone = input.value.replace(/\D/g, '');
+        if (telefone.length <= 11) {
+            telefone = telefone.replace(/(\d{2})(\d)/, '($1)$2');
+            telefone = telefone.replace(/(\d{1})(\d{4})(\d{4})$/, '$1.$2.$3');
+        }
+        input.value = telefone;
+    }
+
+    function sendViaWhatsApp() {
+        const phoneNumber = document.getElementById('phoneNumber').value;
+        const nomeInventariante = document.getElementById('inventarianteNome').value;
+        const cpfInventariante = document.getElementById('inventarianteCpf').value;
+        const data = document.getElementById('data').value;
+        const nomeFuncionario = document.getElementById('funcionarioNome').value;
+
+        let tableText = `📊 *Informações do Inventário* 📊\n\n*💼 Nome do Inventariante:* _${nomeInventariante}_\n*🆔 CPF do Inventariante:* _${cpfInventariante}_\n*📅 Data:* _${data}_\n*🏦 Nome do Funcionário Caixa:* _${nomeFuncionario}_\n\n`;
+
+        const herdeiros = document.querySelectorAll('#tabelaHerdeiros tr');
+        herdeiros.forEach(tr => {
+            const nome = tr.querySelector('td:nth-child(1) textarea').value;
+            const porcentagem = tr.querySelector('td:nth-child(2) input').value;
+            const cota = tr.querySelector('td:nth-child(3)').innerText;
+            tableText += `*👤 Nome do Herdeiro:* _${nome}_, *📊 %:* _${porcentagem}_, *💵 Cota (R$):* _${cota}_\n`;
+        });
+
+        const totalPorcentagem = document.getElementById('totalPorcentagem').innerText;
+        const totalCota = document.getElementById('totalCota').innerText;
+        const message = `${tableText}\n*🔢 Total %:* _${totalPorcentagem}_\n*💰 Total Cota (R$):* _${totalCota}_`;
+
+        const whatsappUrl = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    function sendViaEmail() {
+        const email = document.getElementById('email').value;
+        const nomeInventariante = document.getElementById('inventarianteNome').value;
+        const cpfInventariante = document.getElementById('inventarianteCpf').value;
+        const data = document.getElementById('data').value;
+        const nomeFuncionario = document.getElementById('funcionarioNome').value;
+
+        let tableText = `📊 Informações do Inventário 📊\n\n💼 Nome do Inventariante: ${nomeInventariante}\n🆔 CPF do Inventariante: ${cpfInventariante}\n📅 Data: ${data}\n🏦 Nome do Funcionário Caixa: ${nomeFuncionario}\n\n`;
+
+        const herdeiros = document.querySelectorAll('#tabelaHerdeiros tr');
+        herdeiros.forEach(tr => {
+            const nome = tr.querySelector('td:nth-child(1) textarea').value;
+            const porcentagem = tr.querySelector('td:nth-child(2) input').value;
+            const cota = tr.querySelector('td:nth-child(3)').innerText;
+            tableText += `👤 Nome do Herdeiro: ${nome}, 📊 %: ${porcentagem}, 💵 Cota (R$): ${cota}\n`;
+        });
+
+        const totalPorcentagem = document.getElementById('totalPorcentagem').innerText;
+        const totalCota = document.getElementById('totalCota').innerText;
+        const message = `${tableText}\n🔢 Total %: ${totalPorcentagem}\n💰 Total Cota (R$): ${totalCota}`;
+
+        window.open(`mailto:${email}?subject=Divisão de Inventário&body=${encodeURIComponent(message)}`);
+    }
+
+    function generatePDF() {
+        const element = document.body; // Seleciona todo o corpo do documento
+
+        html2pdf(element, {
+            margin: 0.5,
+            filename: 'Divisão de Inventário.pdf',
+            image: { type: 'jpeg', quality: 1 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        });
+    }
+
+    window.onload = gerarLinhas;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+</body>
+</html>
