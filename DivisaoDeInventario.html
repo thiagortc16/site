@@ -98,32 +98,32 @@
 <!-- Campos adicionais -->
 <div>
     <label for="inventarianteNome">Nome do Inventariante: </label>
-    <input type="text" id="inventarianteNome" placeholder="Digite o nome do inventariante" style="width: 400px;">
+    <input type="text" id="inventarianteNome" placeholder="Digite o nome do inventariante" style="width: 380px;">
 </div>
 
 <div style="margin-top: 10px;">
     <label for="inventarianteCpf">CPF do Inventariante: </label>
-    <input type="text" id="inventarianteCpf" placeholder="999.999.999-99" maxlength="14" oninput="formatarCPF(this)">
+    <input type="text" id="inventarianteCpf" placeholder="999.999.999-99" maxlength="14" oninput="formatarCPF(this)" style="width: 95px;">
 </div>
 
 <div style="margin-top: 10px;">
     <label for="data">Data: </label>
-    <input type="text" id="data" placeholder="XX/XX/XXXX" maxlength="10" oninput="formatarData(this)">
+    <input type="text" id="data" placeholder="99/99/9999" maxlength="10" oninput="formatarData(this)" style="width: 67px;">
 </div>
 
 <div style="margin-top: 10px;">
     <label for="funcionarioNome">Nome do Funcionário Caixa: </label>
-    <input type="text" id="funcionarioNome" placeholder="Digite o nome do funcionário caixa" style="width: 400px;">
+    <input type="text" id="funcionarioNome" placeholder="Digite o nome do funcionário caixa" style="width: 380px;">
 </div>
 
 <div style="margin-top: 10px;">
     <label for="herdeiros">Número de Herdeiros: </label>
-    <input type="number" id="herdeiros" value="1" min="1" max="999" oninput="gerarLinhas()">
+    <input type="number" id="herdeiros" value="1" min="1" max="999" oninput="gerarLinhas()" style="width: 30px;">
 </div>
 
 <div style="margin-top: 10px;">
     <label for="total">Valor Total a ser Dividido (R$): </label>
-    <input type="text" id="total" value="0,00" oninput="formatarCampoValor(this); gerarLinhas()">
+    <input type="text" id="total" value="0,00" oninput="gerarLinhas()">
 </div>
 
 <div id="errorMsg" class="error"></div>
