@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mensageiro CEF</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        /* Estilos CSS */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+        /* Variáveis de cores para facilitar a manutenção */
+        :root {
+            --primary-color: #1E3A8A; /* Azul mais moderno */
+            --secondary-color: #F97316; /* Laranja vibrante */
+            --background-gradient: linear-gradient(270deg, #1e3a8a, #3b82f6, #1e40af, #3b82f6);
+            --button-hover: #F59E0B;
+            --input-border: #D1D5DB;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --white: #ffffff;
+            --text-color: #374151;
+            --button-transition: all 0.3s ease;
+            --button-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+            --error-color: #EF4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--background-gradient);
+            background-size: 400% 400%;
+            animation: gradientBackground 20s ease infinite;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: auto; /* Permite rolagem */
+        }
+
+        @keyframes gradientBackground {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            background-color: var(--white);
+            padding: 30px 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px var(--shadow-color);
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 500;
+            font-size: 14px;
+            margin-top: 12px;
+            margin-bottom: 6px;
+        }
+
+        input, textarea, select {
+            padding: 12px 16px;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            font-size: 14px;
+            width: 100%;
+            font-family: 'Roboto', sans-serif;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            background-color: #F9FAFB;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 5px var(--primary-color);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: var(--secondary-color);
+            color: var(--white);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            transition: var(--button-transition);
+            flex: 1 1 calc(50% - 10px);
+            padding: 12px 0;
+            border-radius: 8px;
+            box-shadow: var(--button-shadow);
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Botão de Enviar com destaque */
+        .send-button {
+            flex: 1 1 100%;
+            background-color: var(--primary-color);
+            transition: var(--button-transition);
+            box-shadow: var(--button-shadow);
+            font-weight: 600;
+        }
+
+        .send-button:hover {
+            background-color: #1D4ED8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Estilos para dispositivos menores */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 24px;
+            }
+
+            button {
+                flex: 1 1 100%;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+
+        /* Efeito de camada para melhorar a legibilidade */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            z-index: -1;
+        }
+
+        /* Mensagens de erro */
+        .error {
+            color: var(--error-color);
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+    <script>
+        // Função para selecionar aleatoriamente um elemento de um array
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        // Arrays de mensagens para cada tipo de ação com pelo menos 5 variações cada
+
+        // 1. Ativação de Cartão
+        const activationMessages = [
+            `🌟 *Olá, prezado cliente!* 🌟\n\nSomos da *Caixa Econômica Federal* e temos uma ótima notícia para você! Seu cartão de crédito com final *{code}* já está disponível para ativação. 🥳\n\nPara ativá-lo, basta acessar o aplicativo *Cartões Caixa* ou entrar em contato pelos números de atendimento que estão no verso do seu cartão. 📱📞\n\nSe precisar de qualquer ajuda, não hesite em nos contatar. Estamos aqui para facilitar sua experiência! 😊\n\n*Obrigado por escolher a Caixa!* 💙`,
+            `🎉 *Saudações!* 🎉\n\nAqui é da *Caixa Econômica Federal* e queremos informá-lo que seu cartão de crédito com final *{code}* está prontinho para ser ativado! 💳✨\n\nPara ativação, utilize o aplicativo *Cartões Caixa* ou ligue para os números no verso do seu cartão. 📲📞\n\nEstamos sempre à disposição para auxiliá-lo no que for preciso. 🤗\n\n*Agradecemos a sua confiança em nossos serviços!* 🙏`,
+            `💫 *Olá!* 💫\n\nSomos da *Caixa Econômica Federal* e temos o prazer de informar que seu cartão de crédito, final *{code}*, já pode ser ativado! 🚀\n\nÉ simples e rápido! Acesse o aplicativo *Cartões Caixa* ou entre em contato pelos números no verso do cartão. 📱☎️\n\nQualquer dúvida, estamos prontos para ajudar. 😊\n\n*Obrigado por ser nosso cliente!* 💙`,
+            `🌞 *Bom dia/tarde/noite!* 🌞\n\nAqui é da *Caixa Econômica Federal*. Seu cartão de crédito com final *{code}* está disponível para ativação! 🎊\n\nAtive agora mesmo pelo aplicativo *Cartões Caixa* ou pelos telefones no verso do seu cartão. 📲📞\n\nEstamos aqui para tornar tudo mais fácil para você! 🤝\n\n*Muito obrigado por escolher a Caixa!* 💙`,
+            `✨ *Prezado cliente,* ✨\n\nInformamos que seu cartão de crédito com final *{code}* está pronto para uso! 🛍️💳\n\nPara ativá-lo, acesse o aplicativo *Cartões Caixa* ou ligue para os números de atendimento no verso do cartão. 📱☎️\n\nSe tiver qualquer dúvida, não hesite em nos contatar. Estamos sempre à disposição! 😊\n\n*Caixa Econômica Federal - Sempre ao seu lado!* 💙`
+        ];
+
+        // 2. Cobrança de Parcelas
+        const collectionMessages = [
+            `⚠️ *Atenção, prezado cliente!* ⚠️\n\nSomos da *Caixa Econômica Federal* e identificamos que há parcelas em atraso no seu financiamento habitacional referentes aos meses: *{months}*. 🏠💰\n\nPara evitar encargos adicionais e manter seu financiamento em dia, pedimos que entre em contato conosco o mais breve possível. 📞\n\nCaso já tenha regularizado a situação, desconsidere esta mensagem. 👍\n\n*Estamos à disposição para ajudá-lo!* 😊`,
+            `🔔 *Notificação Importante!* 🔔\n\nAqui é da *Caixa Econômica Federal*. Constatamos que existem parcelas pendentes no seu financiamento habitacional dos meses: *{months}*. 🗓️💵\n\nPor favor, entre em contato para regularizar e evitar transtornos futuros. Estamos prontos para oferecer as melhores soluções para você! 🤝\n\nSe já efetuou o pagamento, por favor, ignore esta mensagem. 🙏\n\n*Contamos com a sua atenção!* 💙`,
+            `💡 *Prezado cliente,* 💡\n\nSomos da *Caixa Econômica Federal* e verificamos que há parcelas atrasadas em seu financiamento habitacional referentes aos meses: *{months}*. 🏡💳\n\nPara manter suas obrigações em dia e evitar encargos, pedimos que nos procure o quanto antes. Estamos aqui para ajudar! 😊\n\nCaso já tenha resolvido, desconsidere esta mensagem. 👍\n\n*Obrigado pela sua atenção!* 💙`,
+            `📢 *Aviso Importante!* 📢\n\nAqui é da *Caixa Econômica Federal*. Notamos que as parcelas dos meses *{months}* do seu financiamento habitacional estão em aberto. 📝💰\n\nEntre em contato conosco para regularizar e continuar desfrutando dos benefícios do seu financiamento. 🤗\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏\n\n*Estamos à disposição para atendê-lo!* 💙`,
+            `🚨 *Alerta de Pendência!* 🚨\n\nPrezado cliente, aqui é da *Caixa Econômica Federal*. Identificamos parcelas em atraso no seu financiamento habitacional dos meses: *{months}*. 📆💵\n\nPara evitar possíveis inconvenientes, solicitamos que entre em contato para regularização. Estamos prontos para auxiliá-lo! 😊\n\nCaso já tenha quitado, por favor, desconsidere esta mensagem. 👍\n\n*Agradecemos a sua atenção!* 💙`
+        ];
+
+        // 3. Incentivar Primeira Compra
+        const incentiveMessages = [
+            `🎊 *Parabéns!* 🎊\n\nSeu cartão de crédito com final *{code}* já está desbloqueado e pronto para uso! 💳✨\n\nRealize sua primeira compra e aproveite todos os benefícios que a *Caixa Econômica Federal* oferece a você! 🛍️🎁\n\nSe tiver alguma dúvida ou precisar de assistência, não hesite em nos contatar. Estamos aqui para ajudá-lo! 😊\n\n*Boas compras!* 🛒`,
+            `🌟 *Excelente notícia!* 🌟\n\nSeu cartão de crédito, final *{code}*, está desbloqueado e aguardando sua primeira utilização! 💳🎉\n\nComece a desfrutar de vantagens exclusivas que só a *Caixa Econômica Federal* oferece. Faça sua primeira compra agora mesmo! 🛍️\n\nEstamos à disposição para qualquer auxílio que precisar. 🤗\n\n*Desejamos ótimas compras!* 🛒`,
+            `✨ *Seu cartão está pronto!* ✨\n\nCartão de crédito desbloqueado com sucesso! Final *{code}*. 💳✅\n\nRealize sua primeira transação e descubra um mundo de benefícios com a *Caixa Econômica Federal*! 🛍️🎁\n\nSe precisar de ajuda, estamos aqui para você. 😊\n\n*Aproveite e boas compras!* 🛒`,
+            `🎁 *Aproveite seu novo cartão!* 🎁\n\nSeu cartão de crédito com final *{code}* já pode ser utilizado! 💳🚀\n\nFaça sua primeira compra e comece a aproveitar todas as vantagens que a *Caixa Econômica Federal* preparou para você! 🛍️\n\nQualquer dúvida, estamos à disposição. 🤗\n\n*Boas compras e até breve!* 🛒`,
+            `🌈 *Bem-vindo(a) ao mundo de benefícios!* 🌈\n\nSeu cartão de crédito final *{code}* está desbloqueado e pronto para sua primeira compra! 💳✨\n\nDesfrute das ofertas e vantagens exclusivas que só a *Caixa Econômica Federal* oferece. 🛍️🎉\n\nEstamos aqui para ajudar no que for necessário. 😊\n\n*Boas compras!* 🛒`
+        ];
+
+        // 4. OFERECER CAP PM
+        const capPmMessages = [
+            `🎉 *Conheça o CAP Ganhador Pagamento Mensal!* 🎉\n\nQue tal economizar mensalmente e ainda concorrer a prêmios incríveis de até *R$ 1,5 milhão*? 💰🏆\n\nCom o *CAP PM* da *Caixa Econômica Federal*, você guarda a partir de *R$ 50,00* por mês e participa de sorteios semanais, mensais e anuais! 🎫🎁\n\nE o melhor: ao final, você recebe todo o valor poupado, corrigido pela TR! 💸\n\nVenha até uma de nossas agências e saiba mais! 🏦\n\n*Não perca essa chance de realizar seus sonhos!* 🌟`,
+            `💡 *Invista no seu futuro com o CAP PM!* 💡\n\nEconomize de forma programada e concorra a prêmios que podem mudar sua vida! 💎\n\nGuarde mensalmente a partir de *R$ 50,00* e participe de sorteios com prêmios de até *R$ 1,5 milhão*! 🎉💰\n\nAo final, todo o valor investido volta para você, corrigido pela TR. Um ótimo negócio, não é? 😉\n\nProcure uma agência da *Caixa Econômica Federal* e saiba mais! 🏦\n\n*Transforme seus sonhos em realidade!* ✨`,
+            `🌟 *CAP Ganhador Pagamento Mensal - Sua chance de brilhar!* 🌟\n\nImagine economizar e ainda ter a oportunidade de ganhar prêmios incríveis! 💰🎁\n\nCom aportes mensais a partir de *R$ 50,00*, você participa de sorteios semanais, mensais e anuais, concorrendo a prêmios de até *R$ 1,5 milhão*! 🤑\n\nNo final do plano, resgate todo o valor investido, corrigido pela TR. 💸\n\nVisite uma agência da *Caixa Econômica Federal* e informe-se! 🏦\n\n*O futuro que você deseja começa agora!* 🚀`,
+            `🎈 *Economize e concorra a prêmios milionários!* 🎈\n\nCom o *CAP PM* da *Caixa Econômica Federal*, você guarda um valor mensal e tem a chance de ganhar prêmios de até *R$ 1,5 milhão*! 💎🏆\n\nAlém disso, ao término, todo o seu dinheiro volta corrigido pela TR. Um investimento seguro e cheio de vantagens! 💰\n\nPasse em uma de nossas agências e saiba como participar! 🏦\n\n*Invista nos seus sonhos!* ✨`,
+            `🚀 *CAP PM - Oportunidade Imperdível!* 🚀\n\nGuarde mensalmente a partir de *R$ 50,00* e concorra a prêmios incríveis com o *CAP PM* da *Caixa Econômica Federal*! 💰🎉\n\nPrêmios semanais, mensais e anuais que podem chegar a *R$ 1,5 milhão*! 🏆\n\nNo final, resgate todo o valor investido, corrigido pela TR. Simples assim! 💸\n\nVisite nossa agência mais próxima e saiba mais! 🏦\n\n*O que está esperando? Seu futuro começa agora!* 🌟`
+        ];
+
+        // 5. Energia Renovável
+        const energyRenewableMessages = [
+            `☀️ *Invista em Energia Solar e Economize!* ☀️\n\nJá pensou em reduzir sua conta de luz e ainda contribuir para um mundo mais sustentável? 🌎💚\n\nA *Caixa Econômica Federal* oferece linhas de crédito especiais para você financiar a instalação de painéis solares na sua residência ou empresa! 🏠🔌\n\nCondições imperdíveis e facilidades de pagamento para você aproveitar o melhor da energia renovável! 💡\n\nEntre em contato e saiba mais! 📞\n\n*Juntos por um futuro mais verde!* 🌱`,
+            `🌞 *Energia Renovável ao seu Alcance!* 🌞\n\nA *Caixa Econômica Federal* tem o financiamento ideal para você investir em energia solar e economizar na conta de luz! 💡💰\n\nContribua para a preservação do meio ambiente e ainda desfrute de todos os benefícios da energia limpa! 🌿🌎\n\nCondições especiais e atendimento personalizado para você! 🤗\n\nFale conosco e descubra como! 📞\n\n*Faça parte dessa mudança!* ✨`,
+            `⚡ *Sustentabilidade e Economia!* ⚡\n\nTransforme a luz do sol em energia para sua casa ou negócio com o financiamento de energia solar da *Caixa Econômica Federal*! 🏠🔌\n\nTaxas atrativas e prazos facilitados para você investir no seu futuro e do planeta! 🌍💚\n\nEntre em contato e saiba como aderir! 📞\n\n*Energia renovável: boa para você, essencial para o mundo!* 🌱`,
+            `💡 *Energia Solar: Invista no Futuro!* 💡\n\nA *Caixa Econômica Federal* apoia você na aquisição de sistemas de energia solar fotovoltaica! ☀️🔋\n\nEconomize na conta de luz e contribua para um mundo mais sustentável com nossas condições especiais de financiamento! 💰🌿\n\nFale conosco e comece a economizar! 📞\n\n*Juntos, iluminando um futuro melhor!* ✨`,
+            `🌟 *Energia Solar: Sustentabilidade em Alta!* 🌟\n\nFinancie seu sistema de energia solar com a *Caixa Econômica Federal* e aproveite os benefícios da energia limpa! ☀️🔌\n\nCondições exclusivas, taxas atrativas e suporte especializado para você! 💰🤝\n\nEntre em contato e faça parte dessa revolução energética! 📞\n\n*O futuro é agora! Invista em energia renovável!* 🌱`
+        ];
+
+        // 6. Incentivo LCI
+        const incentivoLCIMessages = [
+            `💰 *Invista com Segurança na LCI da Caixa!* 💰\n\nA Letra de Crédito Imobiliário (LCI) é uma excelente opção para você que busca rentabilidade e segurança! 🏦✨\n\nCom a *Caixa Econômica Federal*, você investe com isenção de Imposto de Renda para pessoas físicas e diversifica sua carteira de investimentos! 📈\n\nEntre em contato e saiba como começar! 📞\n\n*Seu futuro financeiro começa com boas escolhas!* 🌟`,
+            `📈 *LCI Caixa: Rentabilidade e Segurança!* 📈\n\nAproveite as vantagens de investir em LCI com a *Caixa Econômica Federal*! 💰\n\nIsenção de Imposto de Renda para PF, garantia de rentabilidade e a solidez de uma instituição financeira confiável! 🏦\n\nFale conosco e invista no seu futuro! 📞\n\n*Faça seu dinheiro trabalhar por você!* 💡`,
+            `🏠 *LCI Caixa: Oportunidade Imperdível!* 🏠\n\nInvista na Letra de Crédito Imobiliário da *Caixa Econômica Federal* e desfrute de benefícios exclusivos! 💎\n\nIsenção de IR para pessoas físicas e excelentes retornos para o seu investimento! 💰\n\nEntre em contato e saiba mais! 📞\n\n*Seu patrimônio merece um investimento seguro!* 🔒`,
+            `🌟 *Conheça a LCI da Caixa!* 🌟\n\nUma opção de investimento que une rentabilidade e segurança, com isenção de IR para PF! 💰\n\nCom a *Caixa Econômica Federal*, você tem a confiança e tradição de uma instituição sólida! 🏦\n\nFale conosco e diversifique seus investimentos! 📞\n\n*Invista no seu futuro financeiro!* 📊`,
+            `💡 *Invista em LCI com a Caixa!* 💡\n\nA Letra de Crédito Imobiliário é uma excelente alternativa para quem busca bons rendimentos e segurança! 📈\n\nIsenção de Imposto de Renda para pessoas físicas e a solidez da *Caixa Econômica Federal*! 🏦\n\nEntre em contato e comece a investir hoje mesmo! 📞\n\n*Seu futuro começa agora!* 🌠`
+        ];
+
+        // 7. VOCÊ NO AZUL
+        const blueYouMessages = [
+            `🔵 *VOCÊ NO AZUL - Aproveite Agora!* 🔵\n\nA *Caixa Econômica Federal* oferece descontos de até *90%* para você regularizar suas dívidas de créditos comerciais! 💰\n\nEsta é a oportunidade perfeita para limpar seu nome e reorganizar sua vida financeira! 📝💙\n\nEntre em contato e saiba como participar! 📞\n\n*Estamos prontos para ajudá-lo!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `💙 *Campanha VOCÊ NO AZUL!* 💙\n\nNão perca a chance de quitar suas dívidas com descontos incríveis de até *90%*! 💵\n\nA *Caixa Econômica Federal* está aqui para ajudá-lo a retomar o controle da sua vida financeira! 📝\n\nContate-nos agora mesmo! 📞\n\n*Juntos, vamos virar esse jogo!* ⚽\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🌟 *VOCÊ NO AZUL - Limpe seu Nome!* 🌟\n\nCondições especiais para regularizar suas dívidas na *Caixa Econômica Federal*! 💰\n\nDescontos de até *90%* para você começar uma nova fase na sua vida financeira! 📝✨\n\nEntre em contato e aproveite! 📞\n\n*Estamos aqui por você!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🚀 *VOCÊ NO AZUL - Hora de Recomeçar!* 🚀\n\nA *Caixa Econômica Federal* oferece condições imperdíveis para você quitar suas dívidas com descontos de até *90%*! 💸\n\nNão deixe essa oportunidade passar! Reorganize suas finanças e volte a crescer! 🌱\n\nFale conosco! 📞\n\n*Conte com a gente!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `💡 *VOCÊ NO AZUL - Descontos Especiais!* 💡\n\nRegularize suas dívidas de créditos comerciais com a *Caixa Econômica Federal*! 💰\n\nDescontos incríveis de até *90%* para você retomar o controle financeiro! 📝\n\nEntre em contato agora mesmo! 📞\n\n*Juntos, fazemos a diferença!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`
+        ];
+
+        // 8. Ação Tudo em Dia 2024
+        const allClearActionMessages = [
+            `🗓️ *TUDO EM DIA CAIXA 2024!* 🗓️\n\nPrepare-se para começar o ano com o pé direito! 👣\n\nA *Caixa Econômica Federal* oferece descontos de até *90%* para você regularizar suas dívidas e colocar tudo em dia! 💰\n\nNão perca essa chance de equilibrar suas finanças! 📊\n\nEntre em contato e saiba mais! 📞\n\n*Estamos prontos para ajudá-lo a conquistar seus objetivos!* 🌟\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🎯 *Ação TUDO EM DIA 2024!* 🎯\n\nQue tal iniciar 2024 sem dívidas? 🗓️\n\nA *Caixa Econômica Federal* está oferecendo descontos incríveis de até *90%* para você quitar suas pendências! 💸\n\nAproveite esta oportunidade única! 🏃‍♂️\n\nEntre em contato! 📞\n\n*Juntos, alcançaremos suas metas!* 🏆\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🌠 *TUDO EM DIA 2024 - Comece o Ano sem Dívidas!* 🌠\n\nA *Caixa Econômica Federal* quer ajudar você a regularizar suas dívidas com descontos de até *90%*! 💰\n\nNão deixe para depois, organize sua vida financeira agora mesmo! 📈\n\nFale conosco e saiba como! 📞\n\n*Estamos ao seu lado nessa jornada!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🚀 *TUDO EM DIA CAIXA 2024 - Decole sem Dívidas!* 🚀\n\nAproveite descontos de até *90%* para quitar suas dívidas com a *Caixa Econômica Federal*! 💸\n\nInicie 2024 com tranquilidade e segurança financeira! 🛤️\n\nEntre em contato e aproveite! 📞\n\n*Vamos juntos rumo ao sucesso!* 🌟\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🔔 *Ação TUDO EM DIA 2024 - Última Chamada!* 🔔\n\nA *Caixa Econômica Federal* oferece condições imperdíveis para você regularizar suas dívidas com descontos de até *90%*! 💰\n\nNão perca essa oportunidade de começar o ano novo sem pendências! 🗓️\n\nEntre em contato agora mesmo! 📞\n\n*Conte conosco para alcançar seus objetivos!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`
+        ];
+
+        // 9. CRÉDITO CONSIGNADO/RENOVAÇÃO
+        const creditoConsignadoMessages = [
+            `📣 *Atenção!* 📣\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* está com uma oferta imperdível para você! 💰\n\n🔹 *Crédito Consignado* com taxas especiais e condições exclusivas! 🤑\n🔹 *Renove o seu empréstimo* com condições ainda melhores! 🔄\n🔹 *Parcelas que cabem no seu bolso* e sem burocracia! 💳\n\n💼 Aproveite para realizar seus sonhos ou organizar suas finanças com a segurança e confiança de sempre. 🌟\n\n*Entre em contato agora mesmo e saiba mais sobre essa oportunidade!* 📞\n(37) 3311-0050\nag1696@caixa.gov.br\n\n*Caixa Econômica Federal*\n*Apoio e confiança para o que você precisar.* 💙`,
+            `🔥 *Oferta Exclusiva!* 🔥\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* preparou algo especial para você! 🎁\n\n✨ *Crédito Consignado* com as melhores taxas do mercado! 💲\n✨ *Renove seu empréstimo* com vantagens incríveis! 🔄\n✨ *Facilidade no pagamento* e sem complicações! 💳\n\n💡 Não perca a chance de tirar seus planos do papel com toda a segurança que a Caixa oferece. 🤝\n\n*Contate-nos agora mesmo!* 📞\n(37) 3311-0050\nag1696@caixa.gov.br\n\n*Caixa Econômica Federal*\n*Sempre ao seu lado.* 💙`,
+            `💰 *Crédito Consignado Especial!* 💰\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* tem uma excelente oportunidade para você! 🏦\n\n🔸 *Taxas reduzidas* e condições imperdíveis! 🤑\n🔸 *Renovação de empréstimo* com ainda mais benefícios! 🔄\n🔸 *Parcelas acessíveis* e sem burocracia! 💳\n\n🌟 Realize seus projetos ou organize suas finanças com quem você confia. 😊\n\n*Entre em contato e saiba mais!* 📞\n(37) 3311-0050\nag1696@caixa.gov.br\n\n*Caixa Econômica Federal*\n*Compromisso com você.* 💙`,
+            `🌟 *Não Perca!* 🌟\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* está oferecendo:\n\n✅ *Crédito Consignado* com condições especiais! 💰\n✅ *Renovação facilitada* do seu empréstimo! 🔄\n✅ *Parcelas que cabem no seu orçamento*! 💳\n\n🚀 É a sua chance de realizar sonhos e planejar o futuro com tranquilidade! 🌈\n\n*Fale conosco agora mesmo!* 📞\n(37) 3311-0050\nag1696@caixa.gov.br\n\n*Caixa Econômica Federal*\n*Tradição e segurança ao seu lado.* 💙`,
+            `💡 *Oportunidade Única!* 💡\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* tem uma proposta imperdível para você! 🎯\n\n🌠 *Crédito Consignado* com taxas exclusivas! 💲\n🌠 *Renovação de empréstimo* com vantagens especiais! 🔄\n🌠 *Pagamento facilitado* e sem complicações! 💳\n\n💖 Aproveite para dar aquele passo que você sempre quis com total segurança! 🤗\n\n*Entre em contato e aproveite!* 📞\n(37) 3311-0050\nag1696@caixa.gov.br\n\n*Caixa Econômica Federal*\n*Ao seu lado em todos os momentos.* 💙`
+        ];
+
+        // 10. CRÉDITO PJ
+        const creditoPJMessages = [
+            `📢 *Prezado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* 📢\n\nVocê está em busca de linhas de crédito para sua empresa com taxas de juros significativamente mais baixas e com carência para iniciar os pagamentos? 💰🕒\n\nVenha realizar uma avaliação conosco na *CAIXA*! 🏦\n\nEntre em contato com o *SETOR PJ da CAIXA ARCOS* pelos telefones 📞 (37) 3311-0058 ou pelo e-mail 📧 roberta.s.carvalho@caixa.gov.br, ou visite-nos pessoalmente na agência Arcos da CAIXA. 🤝\n\n*Obrigado pela preferência!* 🙏\n\n*Caixa Econômica Federal - O apoio que a sua empresa merece!* 💙`,
+            `💼 *Saudações, estimado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS!* 💼\n\nSe você procura por linhas de crédito para sua empresa com taxas de juros reduzidas e carência para iniciar os pagamentos, temos excelentes notícias! 🎯\n\nAgende uma avaliação na *CAIXA* e descubra as melhores soluções para o seu negócio. 🏢\n\nContate o *SETOR PJ da CAIXA ARCOS* pelos telefones 📞 (37) 3311-0058, via e-mail 📧 roberta.s.carvalho@caixa.gov.br, ou visite-nos na agência Arcos da CAIXA. 📍\n\n*Agradecemos a sua preferência e confiança!* 🤗\n\n*Caixa Econômica Federal - Parceira do seu crescimento!* 💙`,
+            `🏦 *Olá, Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS!* 🏦\n\nEstá em busca de crédito para impulsionar sua empresa, com taxas atrativas e prazo de carência para começar a pagar? 💡\n\nVenha até a *CAIXA* e faça uma avaliação personalizada. 📊\n\nEntre em contato com o *SETOR PJ da CAIXA ARCOS* pelo telefone 📞 (37) 3311-0058, pelo e-mail 📧 roberta.s.carvalho@caixa.gov.br, ou pessoalmente na agência Arcos. 🗺️\n\n*Obrigado pela preferência!* 🙏\n\n*Caixa Econômica Federal - Impulsionando o sucesso do seu negócio!* 💙`,
+            `🔔 *Estimado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* 🔔\n\nProcurando linhas de crédito para sua empresa com juros mais baixos e carência nos pagamentos? Temos a solução ideal para você! 💎\n\nRealize uma avaliação na *CAIXA* e descubra nossas condições especiais. 📈\n\nContato pelo *SETOR PJ da CAIXA ARCOS*: telefones 📞 (37) 3311-0058, e-mail 📧 roberta.s.carvalho@caixa.gov.br, ou visite-nos na agência Arcos. 🏢\n\n*Obrigado pela preferência!* 🤝\n\n*Caixa Econômica Federal - O parceiro financeiro que você confia!* 💙`,
+            `✨ *Caro Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* ✨\n\nSe a sua empresa precisa de crédito com taxas competitivas e carência para início dos pagamentos, estamos aqui para ajudar! 🚀\n\nVenha até a *CAIXA* para uma avaliação completa das suas necessidades. 📝\n\nContate o *SETOR PJ da CAIXA ARCOS* através do telefone 📞 (37) 3311-0058, e-mail 📧 roberta.s.carvalho@caixa.gov.br, ou visite nossa agência em Arcos. 🏦\n\n*Obrigado pela preferência!* 🙌\n\n*Caixa Econômica Federal - Juntos pelo sucesso do seu empreendimento!* 💙`
+        ];
+
+        // 11. CONTRATAÇÃO CARTÃO DE CRÉDITO
+        const contratacaoCartaoMessages = [
+            `💳 *Prezado(a) Cliente,* 💳\n\nTemos o prazer de informar que seu cartão de crédito está pré-aprovado e pronto para contratação! 🎉\n\nPara prosseguir, por favor, dirija-se à agência da *Caixa Econômica Federal* mais próxima, munido(a) dos seguintes documentos: 📄\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência 🏠\n- Comprovante de renda 💵\n\nEstamos à disposição para auxiliá-lo(a) em todo o processo. 🤝\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`,
+            `🌟 *Estimado(a) Cliente,* 🌟\n\nSeu cartão de crédito está pré-aprovado e aguardando sua contratação! ✨\n\nPara formalizar, compareça à agência da *Caixa Econômica Federal* mais próxima com os seguintes documentos: 📝\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência atual 🏡\n- Comprovante de renda atualizado 💰\n\nEstamos prontos para auxiliá-lo(a) em cada etapa. 🤗\n\nCordialmente,\n*Caixa Econômica Federal* 💙`,
+            `📢 *Aviso Importante ao Cliente,* 📢\n\nInformamos que seu cartão de crédito encontra-se pré-aprovado e disponível para contratação imediata! 🛍️\n\nPara continuar, dirija-se à agência da *Caixa Econômica Federal* mais próxima, portando os documentos abaixo: 📂\n\n- Documento oficial com foto 🆔\n- Comprovante de endereço 🏘️\n- Comprovante de renda 💲\n\nSerá um prazer atendê-lo(a) e esclarecer quaisquer dúvidas. 😊\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`,
+            `✨ *Caro(a) Cliente,* ✨\n\nSeu cartão de crédito está pré-aprovado e à sua espera! 🎊\n\nPara efetivar a contratação, por gentileza, compareça à agência da *Caixa Econômica Federal* mais próxima, levando: 📋\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência atual 🏠\n- Comprovante de renda recente 💵\n\nEstamos disponíveis para oferecer todo o suporte necessário. 🤝\n\nCordialmente,\n*Caixa Econômica Federal* 💙`,
+            `💼 *Prezado(a) Cliente,* 💼\n\nÉ com satisfação que comunicamos que seu cartão de crédito está pré-aprovado! 🎇\n\nPara proceder com a contratação, dirija-se à agência da *Caixa Econômica Federal* mais próxima, portando os seguintes documentos: 🗂️\n\n- Documento oficial com foto 🆔\n- Comprovante de residência atualizado 🏡\n- Comprovante de renda atual 💰\n\nSerá uma honra auxiliá-lo(a) neste processo. 😊\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`
+        ];
+        const openFinanceServidorMessages = [
+    `💼 **Prezado Servidor Público, bom dia!** 🌞
+
+É com grande satisfação que informamos que a **Caixa Econômica Federal** está disponibilizando taxas excepcionalmente atrativas no crédito consignado para servidores que possuem empréstimos em outras instituições financeiras (portabilidade). 💰🏦
+
+Para usufruir desta oportunidade singular, convidamos Vossa Senhoria a acessar o **Open Finance** em nosso aplicativo e autorizar a visualização de seus empréstimos e produtos financeiros em outros bancos. 📱🔐
+
+Com o cadastro efetivado no Open Finance, nossa equipe entrará em contato para oferecer-lhe uma proposta com taxas mais vantajosas em comparação àquelas do banco de origem. 📞💡
+
+**Passo a passo para adesão:**
+
+1. Acesse o aplicativo **Caixa** em seu dispositivo móvel. 📲
+2. Utilize a ferramenta de busca (lupa) e procure por **Open Finance**. 🔍
+3. Realize o cadastro informando a instituição financeira de origem. 📝
+4. No aplicativo do outro banco, efetive o compartilhamento de dados conforme solicitado. 🔄
+5. Pronto! Nossa equipe entrará em contato em breve. ✅
+
+Caso encontre quaisquer dificuldades neste procedimento, sinta-se à vontade para dirigir-se até a agência, onde estaremos prontos para auxiliá-lo. 🤝
+
+Atenciosamente,
+
+**Douglas Rodrigues Cabral**
+Gerente Geral Agência Arcos 1696
+CPA 10, CPA 20, CA600.
+douglas.cabral@caixa.gov.br
+Tel agência: 37-3311-0050
+Cel: 37-99903-9090`,
+
+    `👋 **Estimado Servidor Público, saudações cordiais!** 🌟
+
+A **Caixa Econômica Federal** tem a honra de comunicar que dispõe de taxas especiais no crédito consignado, destinadas exclusivamente aos servidores que possuem empréstimos ativos em outras instituições bancárias (portabilidade). 💎🏛️
+
+Para aproveitar esta proposta ímpar, solicitamos que Vossa Senhoria utilize o **Open Finance** em nosso aplicativo, autorizando-nos a acessar informações referentes aos seus empréstimos e produtos financeiros em outros bancos. 📲🔓
+
+Após a conclusão do cadastro no Open Finance, entraremos em contato para apresentar-lhe uma oferta com taxas mais competitivas do que as praticadas pela instituição de origem. 📞✨
+
+**Orientações para adesão:**
+
+1. Abra o aplicativo **Caixa** em seu smartphone. 📱
+2. Toque no ícone da lupa e pesquise por **Open Finance**. 🔎
+3. Proceda com o cadastro, informando o banco de origem. 🖋️
+4. No aplicativo da outra instituição, autorize o compartilhamento de dados solicitado. 🔄
+5. Finalizado! Em breve, entraremos em contato. ✅
+
+Caso necessite de assistência adicional, estaremos à disposição em nossa agência para auxiliá-lo em todas as etapas. 🤗
+
+Cordialmente,
+
+**Douglas Rodrigues Cabral**
+Gerente Geral Agência Arcos 1696
+CPA 10, CPA 20, CA600.
+douglas.cabral@caixa.gov.br
+Tel agência: 37-3311-0050
+Cel: 37-99903-9090`,
+
+    `📣 **Prezado Servidor Público, boa jornada!** ☀️
+
+Com o intuito de proporcionar benefícios exclusivos, a **Caixa Econômica Federal** anuncia taxas diferenciadas no crédito consignado para servidores com empréstimos em outras instituições (portabilidade). 💰🏦
+
+Vossa Senhoria pode autorizar a Caixa a visualizar seus empréstimos e produtos financeiros de outros bancos através do **Open Finance** em nosso aplicativo. 📱🔑
+
+Uma vez cadastrado no Open Finance, entraremos em contato para oferecer-lhe condições mais favoráveis do que as atualmente vigentes em seu banco de origem. 📞💡
+
+**Procedimento para adesão:**
+
+1. Acesse o aplicativo **Caixa** em seu dispositivo. 📲
+2. Utilize a função de busca e digite **Open Finance**. 🔍
+3. Cadastre-se, informando a instituição financeira onde possui empréstimo. 📝
+4. No aplicativo do outro banco, confirme o compartilhamento de dados. 🔄
+5. Concluído! Nossa equipe fará contato em breve. ✅
+
+Se encontrar qualquer dificuldade, não hesite em visitar nossa agência, onde estaremos prontos para auxiliá-lo pessoalmente. 🤝
+
+Atenciosamente,
+
+**Douglas Rodrigues Cabral**
+Gerente Geral Agência Arcos 1696
+CPA 10, CPA 20, CA600.
+douglas.cabral@caixa.gov.br
+Tel agência: 37-3311-0050
+Cel: 37-99903-9090`,
+
+    `💡 **Estimado Servidor Público, saudações!** 🌞
+
+É com imenso prazer que a **Caixa Econômica Federal** informa sobre a disponibilização de taxas especiais no crédito consignado para servidores públicos que mantêm empréstimos em outras instituições financeiras (portabilidade). 💎🏦
+
+Para aproveitar esta condição exclusiva, solicitamos que Vossa Senhoria realize o cadastro no **Open Finance** através do aplicativo da Caixa, autorizando-nos a acessar informações sobre seus empréstimos e produtos em outros bancos. 📲🔒
+
+Após a conclusão do cadastro, nossa equipe entrará em contato para apresentar uma proposta com taxas mais atrativas do que as oferecidas pelo banco de origem. 📞✨
+
+**Instruções para proceder:**
+
+1. Abra o aplicativo **Caixa** em seu celular. 📱
+2. Utilize a lupa para pesquisar por **Open Finance**. 🔎
+3. Realize o cadastro, informando a instituição financeira correspondente. 🖋️
+4. No aplicativo do outro banco, efetue o compartilhamento de dados conforme solicitado. 🔄
+5. Tudo pronto! Entraremos em contato em breve. ✅
+
+Caso necessite de qualquer auxílio, estaremos à disposição em nossa agência para atendê-lo pessoalmente. 🤗
+
+Cordialmente,
+
+**Douglas Rodrigues Cabral**
+Gerente Geral Agência Arcos 1696
+CPA 10, CPA 20, CA600.
+douglas.cabral@caixa.gov.br
+Tel agência: 37-3311-0050
+Cel: 37-99903-9090`,
+
+    `🚀 **Prezado Servidor Público, bom dia!** 🌅
+
+A **Caixa Econômica Federal** tem a honra de oferecer taxas de crédito consignado ainda mais competitivas para servidores que possuem empréstimos em outras instituições bancárias (portabilidade). 💰🚀
+
+Convidamos Vossa Senhoria a utilizar o **Open Finance** em nosso aplicativo, autorizando a Caixa a visualizar seus empréstimos e produtos financeiros em outros bancos. 📱🔐
+
+Com o cadastro concluído, entraremos em contato para oferecer-lhe uma proposta com taxas mais vantajosas do que as praticadas pela instituição de origem. 📞💡
+
+**Passo a passo para adesão:**
+
+1. Acesse o aplicativo **Caixa** em seu smartphone. 📲
+2. Utilize a ferramenta de busca (lupa) e procure por **Open Finance**. 🔍
+3. Efetue o cadastro, informando o banco onde possui empréstimo. 📝
+4. No aplicativo da outra instituição, autorize o compartilhamento de dados. 🔄
+5. Pronto! Entraremos em contato em breve. ✅
+
+Estamos à disposição em nossa agência para auxiliá-lo em caso de dúvidas ou dificuldades. 🤝
+
+Atenciosamente,
+
+**Douglas Rodrigues Cabral**
+Gerente Geral Agência Arcos 1696
+CPA 10, CPA 20, CA600.
+douglas.cabral@caixa.gov.br
+Tel agência: 37-3311-0050
+Cel: 37-99903-9090`,
+];
+        // Funções para definir as mensagens
+        function setOpenFinanceServidor() {
+    var message = getRandomElement(openFinanceServidorMessages);
+    document.getElementById("message").value = message;
+}
+        function setActivationMessage() {
+            var code = document.getElementById("code").value;
+            if (!/^\d{4}$/.test(code)) {
+                alert("Por favor, insira os quatro dígitos finais do cartão de crédito.");
+                return;
+            }
+            var message = getRandomElement(activationMessages).replace("{code}", code);
+            document.getElementById("message").value = message;
+        }
+
+        function setCollectionMessage() {
+            var months = document.getElementById("months").value;
+            if (!months || months <= 0) {
+                alert("Por favor, insira a quantidade de meses atrasados.");
+                return;
+            }
+
+            var monthsList = [];
+            for (var i = 1; i <= months; i++) {
+                var monthInput = document.getElementById(`month${i}`);
+                if (monthInput && monthInput.value) {
+                    monthsList.push(monthInput.value);
+                }
+            }
+
+            if (monthsList.length === 0) {
+                alert("Por favor, insira os meses em atraso.");
+                return;
+            }
+
+            var monthsStr = monthsList.join(", ");
+            var message = getRandomElement(collectionMessages).replace("{months}", monthsStr);
+            document.getElementById("message").value = message;
+        }
+
+        function setIncentiveMessage() {
+            var code = document.getElementById("code").value;
+            if (!/^\d{4}$/.test(code)) {
+                alert("Por favor, insira os quatro dígitos finais do cartão de crédito.");
+                return;
+            }
+            var message = getRandomElement(incentiveMessages).replace("{code}", code);
+            document.getElementById("message").value = message;
+        }
+
+        function setCapPmMessage() {
+            var message = getRandomElement(capPmMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setEnergyRenewableMessage() {
+            var message = getRandomElement(energyRenewableMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setIncentivoLCIMessage() {
+            var message = getRandomElement(incentivoLCIMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setBlueYouMessage() {
+            var message = getRandomElement(blueYouMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setAllClearActionMessage() {
+            var message = getRandomElement(allClearActionMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setCreditoConsignado() {
+            var message = getRandomElement(creditoConsignadoMessages);
+            document.getElementById("message").value = message;
+        }
+
+        // Funções adicionadas para os novos botões
+
+        function setCreditoPJMessage() {
+            var message = getRandomElement(creditoPJMessages);
+            document.getElementById("message").value = message;
+        }
+
+        function setContratacaoCartao() {
+            var message = getRandomElement(contratacaoCartaoMessages);
+            document.getElementById("message").value = message;
+        }
+
+        // Função para gerar inputs de mês
+        function generateMonthInputs() {
+            var months = parseInt(document.getElementById("months").value);
+            var monthInputsContainer = document.getElementById("monthInputs");
+            monthInputsContainer.innerHTML = "";
+
+            if (months > 0 && months <= 12) {
+                for (var i = 1; i <= months; i++) {
+                    var inputGroup = document.createElement("div");
+                    inputGroup.style.marginBottom = "12px";
+
+                    var label = document.createElement("label");
+                    label.setAttribute("for", `month${i}`);
+                    label.textContent = `Mês ${i}:`;
+
+                    var input = document.createElement("input");
+                    input.type = "text";
+                    input.id = `month${i}`;
+                    input.placeholder = "MMyy";
+                    input.maxLength = 4;
+
+                    inputGroup.appendChild(label);
+                    inputGroup.appendChild(input);
+                    monthInputsContainer.appendChild(inputGroup);
+                }
+            }
+        }
+
+        // Função para enviar mensagens via WhatsApp
+        function sendMessage() {
+            var phones = document.getElementById("phones").value.trim().split(/\s+/);
+            var message = document.getElementById("message").value.trim();
+
+            if (phones.length === 0 || !message) {
+                alert("Por favor, insira pelo menos um número de telefone e uma mensagem.");
+                return;
+            }
+
+            phones.forEach(function(phone, index) {
+                phone = phone.trim();
+                if (phone) {
+                    setTimeout(function() {
+                        var url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+                        window.open(url, '_blank');
+                    }, index * 1000); // Espaça cada abertura de aba por 1 segundo
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Mensageiro CEF</h1>
+        <form>
+            <label for="phones">Número(s) de telefone (separados por espaço):</label>
+            <input type="text" id="phones" placeholder="Ex: 5511999998888 5511988887777">
+
+            <label for="message">Mensagem:</label>
+            <textarea id="message" placeholder="Sua mensagem aqui..."></textarea>
+
+            <label for="code">Últimos 4 dígitos do cartão de crédito:</label>
+            <input type="text" id="code" maxlength="4" placeholder="1234">
+
+            <label for="months">Quantidade de Meses Atrasados:</label>
+            <input type="number" id="months" min="1" max="12" onchange="generateMonthInputs()" placeholder="Ex: 3">
+
+            <div id="monthInputs"></div>
+
+            <!-- Botões de mensagens -->
+            <div class="button-group">
+                <button type="button" onclick="setActivationMessage()">Ativação de Cartão</button>
+                <button type="button" onclick="setCollectionMessage()">Cobrança de Parcelas</button>
+                <button type="button" onclick="setIncentiveMessage()">Incentivar Primeira Compra</button>
+                <button type="button" onclick="setCapPmMessage()">OFERECER CAP PM</button>
+                <button type="button" onclick="setEnergyRenewableMessage()">Energia Renovável</button>
+                <button type="button" onclick="setIncentivoLCIMessage()">Incentivo LCI</button>
+                <button type="button" onclick="setBlueYouMessage()">VOCÊ NO AZUL</button>
+                <button type="button" onclick="setAllClearActionMessage()">Ação Tudo em Dia 2024</button>
+                <button type="button" onclick="setCreditoPJMessage()">CRÉDITO PJ</button>
+                <button type="button" onclick="setContratacaoCartao()">CONTRATAÇÃO CARTÃO DE CRÉDITO</button>
+                <button type="button" onclick="setCreditoConsignado()">CRÉDITO CONSIGNADO/RENOVAÇÃO</button>
+                <button type="button" onclick="setOpenFinanceServidor()">OPEN FINANCE (SERVIDOR)</button>
+                <button type="button" onclick="sendMessage()" class="send-button">Enviar Mensagem</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
