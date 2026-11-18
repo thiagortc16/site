@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Mensageiro CEF — Central de Atendimento WhatsApp</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cef-blue: #005CA9;
+            --cef-blue-dark: #003B73;
+            --cef-orange: #F39200;
+            --cef-orange-hover: #D97706;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #003B73 0%, #005CA9 50%, #1E3A8A 100%);
+            min-height: 100vh;
+            color: #1E293B;
+        }
+
+        /* Badge via data-attribute para manter texto limpo nos botões */
+        .campaign-btn[data-badge]::after {
+            content: attr(data-badge);
+            display: inline-block;
+            margin-left: auto;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 9999px;
+            background-color: rgba(0, 92, 169, 0.1);
+            color: #005CA9;
+            white-space: nowrap;
+        }
+
+        .campaign-btn.active-campaign {
+            border-color: #F39200 !important;
+            background-color: #FFF7ED !important;
+            box-shadow: 0 0 0 2px rgba(243, 146, 0, 0.25);
+        }
+
+        .campaign-btn.active-campaign[data-badge]::after {
+            background-color: #F39200;
+            color: #FFFFFF;
+        }
+
+        /* Simulador de fundo do WhatsApp */
+        .wa-chat-bg {
+            background-color: #EFEAE2;
+            background-image: radial-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 0);
+            background-size: 16px 16px;
+        }
+
+        .wa-bubble {
+            background-color: #D9FDD3;
+            border-radius: 12px 0px 12px 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+            position: relative;
+            word-break: break-word;
+        }
+
+        /* Scrollbar sutil */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="p-3 sm:p-6">
+    <!-- Container de Toasts -->
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-2 sm:px-0"></div>
+
+    <!-- Container Principal -->
+    <div class="max-w-6xl mx-auto bg-slate-50 rounded-2xl shadow-2xl overflow-hidden border border-white/20">
+        <!-- Cabeçalho Institucional -->
+        <header class="bg-gradient-to-r from-[#003B73] via-[#005CA9] to-[#0B4F94] text-white px-5 py-4 sm:px-8 sm:py-5 flex flex-wrap items-center justify-between gap-4 border-b-4 border-[#F39200]">
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shrink-0">
+                    <svg aria-hidden="true" class="w-6 h-6 text-[#F39200]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">Mensageiro CEF</h1>
+                        <span id="agencyHeaderBadge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#F39200] text-white shadow-sm">Ag. 1696 • Arcos/MG</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-blue-100 mt-0.5">Gerador inteligente de comunicados e fila anti-bloqueio para WhatsApp</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-xs flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>Envios hoje:</span>
+                    <strong id="sessionSentCount" class="font-bold text-white">0</strong>
+                </div>
+                <button type="button" onclick="openCustomModal()" class="bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition flex items-center gap-1.5 border border-white/20">
+                    <svg aria-hidden="true" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span>Meus Modelos</span>
+                </button>
+                <button type="button" onclick="openSettingsModal()" class="bg-white/15 hover:bg-white/25 text-white text-xs sm:text-sm font-medium px-3 py-2 rounded-lg transition flex items-center gap-1.5 border border-white/20">
+                    <svg aria-hidden="true" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Dados da Agência</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Corpo Principal em 2 Colunas Responsivas -->
+        <form onsubmit="event.preventDefault(); sendMessage();" class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-4 sm:p-6 lg:p-8">
+            <!-- COLUNA ESQUERDA: Destinatários, Personalização e Campanhas -->
+            <div class="lg:col-span-7 flex flex-col gap-5">
+
+                <!-- 1. Bloco de Destinatários -->
+                <section class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                        <label for="phones" class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            <span>Número(s) de telefone</span>
+                        </label>
+                        <div class="flex items-center gap-3">
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 cursor-pointer select-none">
+                                <input type="checkbox" id="autoDdi" checked onchange="handlePhonesInput()" class="rounded border-slate-300 text-[#005CA9] focus:ring-[#005CA9]">
+                                <span>Auto DDI +55</span>
+                            </label>
+                            <button type="button" id="clearPhonesBtn" onclick="clearPhones()" class="text-xs text-slate-500 hover:text-red-600 font-medium transition hidden">Limpar lista</button>
+                        </div>
+                    </div>
+
+                    <textarea id="phones" rows="2" oninput="handlePhonesInput()" placeholder="Cole do Excel ou digite separado por espaço, vírgula ou linha. Ex: (37) 99999-8888, 5511988887777" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 focus:bg-white focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition resize-y"></textarea>
+
+                    <p id="phonesError" class="text-xs text-red-600 font-medium mt-1.5 hidden"></p>
+
+                    <div class="mt-2.5 flex items-center justify-between gap-2 flex-wrap">
+                        <span id="phoneStats" class="text-xs text-slate-500">Nenhum número informado ainda.</span>
+                    </div>
+                    <div id="phoneChips" class="mt-2 flex flex-wrap gap-1.5 empty:hidden max-h-28 overflow-y-auto"></div>
+                </section>
+
+                <!-- 2. Personalização Opcional (Nome do Cliente & Saudação) -->
+                <section class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label for="clientName" class="block text-xs font-semibold text-slate-700 mb-1">Nome do Cliente (opcional)</label>
+                            <input type="text" id="clientName" oninput="refreshCurrentMessagePersonalization()" placeholder="Ex: Maria Aparecida" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:bg-white focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition">
+                        </div>
+                        <div>
+                            <label for="greetingMode" class="block text-xs font-semibold text-slate-700 mb-1">Saudação Inteligente</label>
+                            <select id="greetingMode" onchange="refreshCurrentMessagePersonalization()" class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 focus:bg-white focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition">
+                                <option value="auto">Automática pelo horário atual</option>
+                                <option value="Bom dia">Forçar "Bom dia"</option>
+                                <option value="Boa tarde">Forçar "Boa tarde"</option>
+                                <option value="Boa noite">Forçar "Boa noite"</option>
+                                <option value="original">Manter texto original</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Dados Específicos da Campanha (Cartão, Parcelas em Atraso, Ano) -->
+                <section class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#F39200]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                            <span>Dados Complementares (Cartão / Parcelas / Ano)</span>
+                        </h2>
+                        <span class="text-[11px] text-slate-500">Preencha quando solicitado pela campanha</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <!-- Últimos 4 dígitos -->
+                        <div id="codePanel" class="p-3 rounded-lg border border-slate-200 bg-slate-50/70 transition">
+                            <label for="code" class="block text-xs font-semibold text-slate-700 mb-1">Últimos 4 dígitos do cartão</label>
+                            <input type="text" id="code" maxlength="4" inputmode="numeric" oninput="handleCodeInput()" placeholder="Ex: 1234" class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-mono tracking-widest text-slate-800 focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition">
+                            <p id="codeError" class="text-[11px] text-red-600 font-medium mt-1 hidden"></p>
+                        </div>
+
+                        <!-- Quantidade de Meses Atrasados -->
+                        <div id="monthsPanel" class="p-3 rounded-lg border border-slate-200 bg-slate-50/70 transition">
+                            <label for="months" class="block text-xs font-semibold text-slate-700 mb-1">Qtd. Meses Atrasados</label>
+                            <input type="number" id="months" min="1" max="12" oninput="generateMonthInputs()" onchange="generateMonthInputs()" placeholder="Ex: 3" class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition">
+                            <p id="monthsError" class="text-[11px] text-red-600 font-medium mt-1 hidden"></p>
+                        </div>
+
+                        <!-- Ano da Campanha Tudo em Dia -->
+                        <div id="yearPanel" class="p-3 rounded-lg border border-slate-200 bg-slate-50/70 transition">
+                            <label for="campaignYear" class="block text-xs font-semibold text-slate-700 mb-1">Ano "Tudo em Dia"</label>
+                            <select id="campaignYear" onchange="handleYearChange()" class="w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition">
+                                <option value="2026" selected>2026 (Atual)</option>
+                                <option value="2025">2025</option>
+                                <option value="2024">2024 (Original)</option>
+                                <option value="2027">2027</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Atalhos rápidos de meses + Inputs dinâmicos de meses -->
+                    <div id="quickMonths" class="mt-3 hidden">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <span class="text-xs font-medium text-slate-600">Atalho rápido — clique para adicionar/remover competências recentes:</span>
+                        </div>
+                        <div id="quickMonthsButtons" class="flex flex-wrap gap-1.5 mb-2.5"></div>
+                    </div>
+
+                    <div id="monthInputs" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mt-2 empty:hidden"></div>
+                </section>
+
+                <!-- 4. Catálogo de Campanhas -->
+                <section class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
+                        <h2 class="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                            <span>Selecione o Modelo de Mensagem</span>
+                        </h2>
+                        <div class="relative w-full sm:w-56">
+                            <input type="text" id="templateSearch" oninput="filterCampaigns()" placeholder="Buscar campanha..." class="w-full rounded-lg border border-slate-300 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-800 focus:bg-white focus:border-[#005CA9] outline-none transition">
+                            <svg aria-hidden="true" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        </div>
+                    </div>
+
+                    <!-- Abas de Categorias -->
+                    <div id="categoryTabs" class="flex flex-wrap gap-1.5 mb-3.5">
+                        <button type="button" data-cat-tab="all" onclick="selectCategoryTab('all')" class="px-3 py-1 rounded-full text-xs font-semibold bg-[#005CA9] text-white transition">Todas</button>
+                        <button type="button" data-cat-tab="cartoes" onclick="selectCategoryTab('cartoes')" class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Cartões</button>
+                        <button type="button" data-cat-tab="cobranca" onclick="selectCategoryTab('cobranca')" class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Cobrança & Acordos</button>
+                        <button type="button" data-cat-tab="credito" onclick="selectCategoryTab('credito')" class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Crédito & PJ</button>
+                        <button type="button" data-cat-tab="investimentos" onclick="selectCategoryTab('investimentos')" class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Investimentos & CAP</button>
+                        <button type="button" data-cat-tab="custom" onclick="selectCategoryTab('custom')" class="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition">Personalizados</button>
+                    </div>
+
+                    <!-- Grade dos 12 Botões Originais -->
+                    <div id="campaignGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <button type="button" data-campaign="activation" data-category="cartoes" data-badge="4 dígitos" onclick="setActivationMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                            <span>Ativação de Cartão</span>
+                        </button>
+
+                        <button type="button" data-campaign="collection" data-category="cobranca" data-badge="Meses" onclick="setCollectionMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-red-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            <span>Cobrança de Parcelas</span>
+                        </button>
+
+                        <button type="button" data-campaign="incentive" data-category="cartoes" data-badge="4 dígitos" onclick="setIncentiveMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#F39200] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+                            <span>Incentivar Primeira Compra</span>
+                        </button>
+
+                        <button type="button" data-campaign="contratacaoCartao" data-category="cartoes" data-badge="Pré-aprovado" onclick="setContratacaoCartao()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            <span>CONTRATAÇÃO CARTÃO DE CRÉDITO</span>
+                        </button>
+
+                        <button type="button" data-campaign="blueYou" data-category="cobranca" data-badge="Até 90%" onclick="setBlueYouMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-blue-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                            <span>VOCÊ NO AZUL</span>
+                        </button>
+
+                        <button type="button" data-campaign="allClear" data-category="cobranca" data-badge="Ano editável" onclick="setAllClearActionMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                            <span>Ação Tudo em Dia 2024</span>
+                        </button>
+
+                        <button type="button" data-campaign="consignado" data-category="credito" data-badge="PF" onclick="setCreditoConsignado()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                            <span>CRÉDITO CONSIGNADO/RENOVAÇÃO</span>
+                        </button>
+
+                        <button type="button" data-campaign="openFinance" data-category="credito" data-badge="Portabilidade" onclick="setOpenFinanceServidor()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                            <span>OPEN FINANCE (SERVIDOR)</span>
+                        </button>
+
+                        <button type="button" data-campaign="creditoPJ" data-category="credito" data-badge="Empresas" onclick="setCreditoPJMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#005CA9] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                            <span>CRÉDITO PJ</span>
+                        </button>
+
+                        <button type="button" data-campaign="energy" data-category="credito" data-badge="Sustentável" onclick="setEnergyRenewableMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-amber-500 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line></svg>
+                            <span>Energia Renovável</span>
+                        </button>
+
+                        <button type="button" data-campaign="capPm" data-category="investimentos" data-badge="Sorteios" onclick="setCapPmMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#F39200] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                            <span>OFERECER CAP PM</span>
+                        </button>
+
+                        <button type="button" data-campaign="lci" data-category="investimentos" data-badge="Isento IR" onclick="setIncentivoLCIMessage()" class="campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm">
+                            <svg aria-hidden="true" class="w-4 h-4 text-emerald-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline><polyline points="17 6 23 6 23 12"></polyline></svg>
+                            <span>Incentivo LCI</span>
+                        </button>
+                    </div>
+
+                    <!-- Lista de Modelos Personalizados do Usuário -->
+                    <div id="customTemplatesGroup" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5 empty:hidden"></div>
+                </section>
+            </div>
+
+            <!-- COLUNA DIREITA: Editor, Prévia WhatsApp e Disparo -->
+            <div class="lg:col-span-5 flex flex-col gap-5">
+
+                <!-- 1. Editor de Mensagem & Controle de Variações -->
+                <section class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border border-slate-200 flex flex-col">
+                    <!-- Barra de Variação Ativa -->
+                    <div id="activeCampaignBar" class="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-slate-100 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-[#F39200]"></span>
+                            <span id="activeCampaignTitle" class="text-xs font-bold text-[#005CA9] uppercase tracking-wide">Texto Livre</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="stepVariation(-1)" title="Variação anterior" class="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-600 transition">◀</button>
+                            <span id="variationCounter" class="text-xs font-mono font-medium text-slate-600 px-1.5">—</span>
+                            <button type="button" onclick="stepVariation(1)" title="Próxima variação" class="px-2 py-1 rounded border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-600 transition">▶</button>
+                            <button type="button" onclick="randomizeCurrentVariation()" class="ml-1 px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-[#D97706] border border-amber-200 text-xs font-semibold transition">Sortear</button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Formatação WhatsApp -->
+                    <div class="flex items-center justify-between gap-1.5 mb-2 flex-wrap">
+                        <label for="message" class="text-sm font-semibold text-slate-800">Mensagem:</label>
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button type="button" onclick="wrapSelection('*', '*')" title="Negrito no WhatsApp" class="px-2 py-1 text-xs font-bold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">*B*</button>
+                            <button type="button" onclick="wrapSelection('_', '_')" title="Itálico no WhatsApp" class="px-2 py-1 text-xs italic rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">_I_</button>
+                            <button type="button" onclick="wrapSelection('~', '~')" title="Tachado no WhatsApp" class="px-2 py-1 text-xs line-through rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">~S~</button>
+                            <button type="button" onclick="appendManagerSignature()" title="Inserir assinatura configurada" class="px-2 py-1 text-xs font-medium rounded bg-blue-50 hover:bg-blue-100 text-[#005CA9] transition">+ Assinatura</button>
+                            <button type="button" onclick="copyMessageText()" class="px-2.5 py-1 text-xs font-semibold rounded bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Copiar</button>
+                            <button type="button" onclick="clearMessageText()" class="px-2 py-1 text-xs font-medium rounded text-slate-500 hover:bg-red-50 hover:text-red-600 transition">Limpar</button>
+                        </div>
+                    </div>
+
+                    <textarea id="message" rows="8" oninput="handleMessageInput()" placeholder="Selecione uma campanha ao lado ou escreva sua mensagem personalizada aqui..." class="w-full rounded-lg border border-slate-300 bg-slate-50 p-3 text-sm text-slate-800 focus:bg-white focus:border-[#005CA9] focus:ring-2 focus:ring-[#005CA9]/20 outline-none transition resize-y font-sans leading-relaxed"></textarea>
+
+                    <div class="flex items-center justify-between mt-1.5">
+                        <p id="messageError" class="text-xs text-red-600 font-medium hidden"></p>
+                        <span id="charCounter" class="text-[11px] text-slate-400 ml-auto">0 caracteres • 0 linhas</span>
+                    </div>
+
+                    <!-- Prévia Visual em Tempo Real Estilo WhatsApp -->
+                    <div class="mt-4 rounded-xl overflow-hidden border border-slate-200">
+                        <div class="bg-[#075E54] text-white px-3.5 py-2 flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[11px]">CEF</span>
+                                <div>
+                                    <p class="font-semibold leading-none">Pré-visualização no WhatsApp</p>
+                                    <p class="text-[10px] text-emerald-100 mt-0.5"> Formatação real (*negrito*, _itálico_, ~tachado~)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="wa-chat-bg p-3.5 max-h-60 overflow-y-auto">
+                            <div class="wa-bubble p-3 text-[13px] text-slate-900 leading-relaxed ml-auto max-w-[95%]">
+                                <div id="waPreviewText" class="whitespace-pre-wrap">Sua mensagem aparecerá formatada aqui.</div>
+                                <div class="flex items-center justify-end gap-1 mt-1 text-[10px] text-slate-500">
+                                    <span id="waPreviewTime">12:00</span>
+                                    <span class="text-sky-500 font-bold">✓✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Canal e Botão Principal de Envio -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <label for="waChannel" class="text-xs font-medium text-slate-600">Abrir links via:</label>
+                            <select id="waChannel" class="rounded-lg border border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 outline-none focus:border-[#005CA9]">
+                                <option value="wame">Padrão / App (wa.me)</option>
+                                <option value="web">WhatsApp Web Direto (web.whatsapp.com)</option>
+                            </select>
+                        </div>
+
+                        <button type="button" onclick="sendMessage()" class="w-full py-3 px-5 rounded-xl bg-[#005CA9] hover:bg-[#004A87] active:scale-[0.99] text-white font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                            <svg aria-hidden="true" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                            <span>Enviar Mensagem</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 2. Fila Anti-Bloqueio de Pop-ups (Múltiplos Destinatários) -->
+                <section id="queueSection" class="bg-white rounded-xl p-4 sm:p-5 shadow-sm border-2 border-[#005CA9]/30 hidden">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <h3 class="text-sm font-bold text-[#003B73] flex items-center gap-2">
+                            <svg aria-hidden="true" class="w-4 h-4 text-[#F39200]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                            <span>Fila de Disparo Seguro</span>
+                        </h3>
+                        <span id="queueProgressText" class="text-xs font-semibold text-[#005CA9]">0 de 0 enviados</span>
+                    </div>
+                    <p class="text-xs text-slate-600 mb-3">Navegadores bloqueiam várias abas automáticas seguidas. Use o botão abaixo para abrir cada conversa com 1 clique sem perder nenhum número:</p>
+
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-3">
+                        <div id="queueProgressBar" class="bg-emerald-500 h-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+
+                    <div class="flex items-center gap-2 mb-3">
+                        <button type="button" id="queueNextBtn" onclick="sendNextInQueue()" class="flex-1 py-2.5 px-4 rounded-lg bg-[#F39200] hover:bg-[#D97706] text-white font-bold text-xs sm:text-sm shadow transition">
+                            Disparar Próximo da Fila ▶
+                        </button>
+                        <button type="button" onclick="closeQueue()" class="py-2.5 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition">
+                            Fechar
+                        </button>
+                    </div>
+
+                    <div id="queueList" class="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1"></div>
+                </section>
+            </div>
+        </form>
+    </div>
+
+    <!-- MODAL: Configurações da Agência e Assinatura -->
+    <div id="settingsModal" class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div class="bg-[#003B73] text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base">Dados da Agência & Assinatura</h3>
+                <button type="button" onclick="closeSettingsModal()" class="text-white/80 hover:text-white text-sm font-bold px-2 py-1">✕</button>
+            </div>
+            <div class="p-5 flex flex-col gap-3 max-h-[75vh] overflow-y-auto text-xs sm:text-sm">
+                <p class="text-xs text-slate-500">Esses dados preenchem automaticamente os modelos de Consignado, Crédito PJ, Open Finance e o botão "+ Assinatura".</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="cfgAgencyName" class="block text-xs font-semibold text-slate-700 mb-1">Identificação da Agência</label>
+                        <input type="text" id="cfgAgencyName" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgGeneralPhone" class="block text-xs font-semibold text-slate-700 mb-1">Telefone Geral (Consignado)</label>
+                        <input type="text" id="cfgGeneralPhone" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgGeneralEmail" class="block text-xs font-semibold text-slate-700 mb-1">E-mail Geral da Agência</label>
+                        <input type="text" id="cfgGeneralEmail" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgPjPhone" class="block text-xs font-semibold text-slate-700 mb-1">Telefone Setor PJ</label>
+                        <input type="text" id="cfgPjPhone" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="cfgPjEmail" class="block text-xs font-semibold text-slate-700 mb-1">E-mail Setor PJ</label>
+                        <input type="text" id="cfgPjEmail" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                </div>
+                <hr class="border-slate-200 my-1">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label for="cfgManagerName" class="block text-xs font-semibold text-slate-700 mb-1">Nome na Assinatura</label>
+                        <input type="text" id="cfgManagerName" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgManagerRole" class="block text-xs font-semibold text-slate-700 mb-1">Cargo / Lotação</label>
+                        <input type="text" id="cfgManagerRole" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgManagerCerts" class="block text-xs font-semibold text-slate-700 mb-1">Certificações</label>
+                        <input type="text" id="cfgManagerCerts" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="cfgManagerCell" class="block text-xs font-semibold text-slate-700 mb-1">Celular Corporativo</label>
+                        <input type="text" id="cfgManagerCell" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label for="cfgManagerEmail" class="block text-xs font-semibold text-slate-700 mb-1">E-mail do Gestor</label>
+                        <input type="text" id="cfgManagerEmail" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-5 py-3.5 flex items-center justify-between border-t border-slate-200">
+                <button type="button" onclick="resetDefaultSettings()" class="text-xs text-slate-500 hover:text-slate-800 font-medium">Restaurar padrão Arcos</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeSettingsModal()" class="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Cancelar</button>
+                    <button type="button" onclick="saveSettingsModal()" class="px-4 py-2 rounded-lg text-xs font-bold bg-[#005CA9] hover:bg-[#004A87] text-white transition">Salvar Dados</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Meus Modelos Personalizados -->
+    <div id="customModal" class="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
+            <div class="bg-[#003B73] text-white px-5 py-4 flex items-center justify-between">
+                <h3 class="font-bold text-base">Criar / Gerenciar Meus Modelos</h3>
+                <button type="button" onclick="closeCustomModal()" class="text-white/80 hover:text-white text-sm font-bold px-2 py-1">✕</button>
+            </div>
+            <div class="p-5 flex flex-col gap-3 max-h-[75vh] overflow-y-auto">
+                <p class="text-xs text-slate-500">Crie modelos próprios para sua rotina. Você pode usar variáveis opcionais como <code class="bg-slate-100 px-1 rounded">{cliente}</code>, <code class="bg-slate-100 px-1 rounded">{saudacao}</code>, <code class="bg-slate-100 px-1 rounded">{code}</code> e <code class="bg-slate-100 px-1 rounded">{months}</code>.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <div class="sm:col-span-2">
+                        <label for="customTitleInput" class="block text-xs font-semibold text-slate-700 mb-1">Nome do Botão</label>
+                        <input type="text" id="customTitleInput" maxlength="36" placeholder="Ex: Consórcio Imobiliário" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-sm">
+                    </div>
+                    <div>
+                        <label for="customCategorySelect" class="block text-xs font-semibold text-slate-700 mb-1">Categoria</label>
+                        <select id="customCategorySelect" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm">
+                            <option value="custom">Personalizados</option>
+                            <option value="credito">Crédito & PJ</option>
+                            <option value="investimentos">Investimentos</option>
+                            <option value="cartoes">Cartões</option>
+                            <option value="cobranca">Cobrança</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="customBodyInput" class="block text-xs font-semibold text-slate-700 mb-1">Texto da Mensagem</label>
+                    <textarea id="customBodyInput" rows="4" placeholder="Olá, {cliente}! {saudacao}! Temos uma condição especial na Caixa..." class="w-full rounded-lg border border-slate-300 p-2.5 text-sm"></textarea>
+                </div>
+                <p id="customModalError" class="text-xs text-red-600 font-medium hidden"></p>
+                <button type="button" onclick="saveCustomTemplate()" class="w-full py-2 rounded-lg bg-[#F39200] hover:bg-[#D97706] text-white font-bold text-xs sm:text-sm transition">
+                    + Salvar Novo Modelo
+                </button>
+
+                <div class="mt-2">
+                    <h4 class="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Modelos Salvos neste Navegador</h4>
+                    <div id="savedCustomList" class="flex flex-col gap-2 text-xs text-slate-600"></div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-5 py-3 flex justify-end border-t border-slate-200">
+                <button type="button" onclick="closeCustomModal()" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 hover:bg-slate-300 text-slate-700 transition">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // Persistência Segura (localStorage com try/catch para ambientes restritos)
+        // =========================================================================
+        function safeGetStorage(key, fallback) {
+            try {
+                var raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
+        function safeSetStorage(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {
+                // Ignorado com segurança caso cookies/storage estejam bloqueados
+            }
+        }
+
+        // =========================================================================
+        // Configurações Padrão da Agência Arcos 1696
+        // =========================================================================
+        const DEFAULT_AGENCY_CONFIG = {
+            agencyName: "Ag. 1696 • Arcos/MG",
+            generalPhone: "(37) 3311-0050",
+            generalEmail: "ag1696@caixa.gov.br",
+            pjPhone: "(37) 3311-0058",
+            pjEmail: "roberta.s.carvalho@caixa.gov.br",
+            managerName: "Douglas Rodrigues Cabral",
+            managerRole: "Gerente Geral Agência Arcos 1696",
+            managerCerts: "CPA 10, CPA 20, CA600.",
+            managerEmail: "douglas.cabral@caixa.gov.br",
+            managerCell: "37-99903-9090"
+        };
+
+        let agencyConfig = Object.assign({}, DEFAULT_AGENCY_CONFIG, safeGetStorage("cef_agency_config_v2", {}));
+        let customTemplates = safeGetStorage("cef_custom_templates_v2", []);
+        let sessionSentTotal = safeGetStorage("cef_sent_today_" + new Date().toISOString().slice(0, 10), 0);
+
+        // Estado de campanha ativa e fila
+        let activeState = {
+            key: null,
+            label: "Texto Livre",
+            variations: [],
+            index: 0,
+            rawBaseTemplate: ""
+        };
+
+        let currentCategoryFilter = "all";
+        let dispatchQueue = [];
+
+        // =========================================================================
+        // Base de Mensagens (12 Campanhas × 5 Variações com formatação WhatsApp)
+        // =========================================================================
+
+        // 1. Ativação de Cartão
+        const activationMessages = [
+            `🌟 *Olá, prezado cliente!* 🌟\n\nSomos da *Caixa Econômica Federal* e temos uma ótima notícia para você! Seu cartão de crédito com final *{code}* já está disponível para ativação. 🥳\n\nPara ativá-lo, basta acessar o aplicativo *Cartões Caixa* ou entrar em contato pelos números de atendimento que estão no verso do seu cartão. 📱📞\n\nSe precisar de qualquer ajuda, não hesite em nos contatar. Estamos aqui para facilitar sua experiência! 😊\n\n*Obrigado por escolher a Caixa!* 💙`,
+            `🎉 *Saudações!* 🎉\n\nAqui é da *Caixa Econômica Federal* e queremos informá-lo que seu cartão de crédito com final *{code}* está prontinho para ser ativado! 💳✨\n\nPara ativação, utilize o aplicativo *Cartões Caixa* ou ligue para os números no verso do seu cartão. 📲📞\n\nEstamos sempre à disposição para auxiliá-lo no que for preciso. 🤗\n\n*Agradecemos a sua confiança em nossos serviços!* 🙏`,
+            `💫 *Olá!* 💫\n\nSomos da *Caixa Econômica Federal* e temos o prazer de informar que seu cartão de crédito, final *{code}*, já pode ser ativado! 🚀\n\nÉ simples e rápido! Acesse o aplicativo *Cartões Caixa* ou entre em contato pelos números no verso do cartão. 📱☎️\n\nQualquer dúvida, estamos prontos para ajudar. 😊\n\n*Obrigado por ser nosso cliente!* 💙`,
+            `🌞 *{saudacao}!* 🌞\n\nAqui é da *Caixa Econômica Federal*. Seu cartão de crédito com final *{code}* está disponível para ativação! 🎊\n\nAtive agora mesmo pelo aplicativo *Cartões Caixa* ou pelos telefones no verso do seu cartão. 📲📞\n\nEstamos aqui para tornar tudo mais fácil para você! 🤝\n\n*Muito obrigado por escolher a Caixa!* 💙`,
+            `✨ *Prezado cliente,* ✨\n\nInformamos que seu cartão de crédito com final *{code}* está pronto para uso! 🛍️💳\n\nPara ativá-lo, acesse o aplicativo *Cartões Caixa* ou ligue para os números de atendimento no verso do cartão. 📱☎️\n\nSe tiver qualquer dúvida, não hesite em nos contatar. Estamos sempre à disposição! 😊\n\n*Caixa Econômica Federal - Sempre ao seu lado!* 💙`
+        ];
+
+        // 2. Cobrança de Parcelas
+        const collectionMessages = [
+            `⚠️ *Atenção, prezado cliente!* ⚠️\n\nSomos da *Caixa Econômica Federal* e identificamos que há parcelas em atraso no seu financiamento habitacional referentes aos meses: *{months}*. 🏠💰\n\nPara evitar encargos adicionais e manter seu financiamento em dia, pedimos que entre em contato conosco o mais breve possível. 📞\n\nCaso já tenha regularizado a situação, desconsidere esta mensagem. 👍\n\n*Estamos à disposição para ajudá-lo!* 😊`,
+            `🔔 *Notificação Importante!* 🔔\n\nAqui é da *Caixa Econômica Federal*. Constatamos que existem parcelas pendentes no seu financiamento habitacional dos meses: *{months}*. 🗓️💵\n\nPor favor, entre em contato para regularizar e evitar transtornos futuros. Estamos prontos para oferecer as melhores soluções para você! 🤝\n\nSe já efetuou o pagamento, por favor, ignore esta mensagem. 🙏\n\n*Contamos com a sua atenção!* 💙`,
+            `💡 *Prezado cliente,* 💡\n\nSomos da *Caixa Econômica Federal* e verificamos que há parcelas atrasadas em seu financiamento habitacional referentes aos meses: *{months}*. 🏡💳\n\nPara manter suas obrigações em dia e evitar encargos, pedimos que nos procure o quanto antes. Estamos aqui para ajudar! 😊\n\nCaso já tenha resolvido, desconsidere esta mensagem. 👍\n\n*Obrigado pela sua atenção!* 💙`,
+            `📢 *Aviso Importante!* 📢\n\nAqui é da *Caixa Econômica Federal*. Notamos que as parcelas dos meses *{months}* do seu financiamento habitacional estão em aberto. 📝💰\n\nEntre em contato conosco para regularizar e continuar desfrutando dos benefícios do seu financiamento. 🤗\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏\n\n*Estamos à disposição para atendê-lo!* 💙`,
+            `🚨 *Alerta de Pendência!* 🚨\n\nPrezado cliente, aqui é da *Caixa Econômica Federal*. Identificamos parcelas em atraso no seu financiamento habitacional dos meses: *{months}*. 📆💵\n\nPara evitar possíveis inconvenientes, solicitamos que entre em contato para regularização. Estamos prontos para auxiliá-lo! 😊\n\nCaso já tenha quitado, por favor, desconsidere esta mensagem. 👍\n\n*Agradecemos a sua atenção!* 💙`
+        ];
+
+        // 3. Incentivar Primeira Compra
+        const incentiveMessages = [
+            `🎊 *Parabéns!* 🎊\n\nSeu cartão de crédito com final *{code}* já está desbloqueado e pronto para uso! 💳✨\n\nRealize sua primeira compra e aproveite todos os benefícios que a *Caixa Econômica Federal* oferece a você! 🛍️🎁\n\nSe tiver alguma dúvida ou precisar de assistência, não hesite em nos contatar. Estamos aqui para ajudá-lo! 😊\n\n*Boas compras!* 🛒`,
+            `🌟 *Excelente notícia!* 🌟\n\nSeu cartão de crédito, final *{code}*, está desbloqueado e aguardando sua primeira utilização! 💳🎉\n\nComece a desfrutar de vantagens exclusivas que só a *Caixa Econômica Federal* oferece. Faça sua primeira compra agora mesmo! 🛍️\n\nEstamos à disposição para qualquer auxílio que precisar. 🤗\n\n*Desejamos ótimas compras!* 🛒`,
+            `✨ *Seu cartão está pronto!* ✨\n\nCartão de crédito desbloqueado com sucesso! Final *{code}*. 💳✅\n\nRealize sua primeira transação e descubra um mundo de benefícios com a *Caixa Econômica Federal*! 🛍️🎁\n\nSe precisar de ajuda, estamos aqui para você. 😊\n\n*Aproveite e boas compras!* 🛒`,
+            `🎁 *Aproveite seu novo cartão!* 🎁\n\nSeu cartão de crédito com final *{code}* já pode ser utilizado! 💳🚀\n\nFaça sua primeira compra e comece a aproveitar todas as vantagens que a *Caixa Econômica Federal* preparou para você! 🛍️\n\nQualquer dúvida, estamos à disposição. 🤗\n\n*Boas compras e até breve!* 🛒`,
+            `🌈 *Bem-vindo(a) ao mundo de benefícios!* 🌈\n\nSeu cartão de crédito final *{code}* está desbloqueado e pronto para sua primeira compra! 💳✨\n\nDesfrute das ofertas e vantagens exclusivas que só a *Caixa Econômica Federal* oferece. 🛍️🎉\n\nEstamos aqui para ajudar no que for necessário. 😊\n\n*Boas compras!* 🛒`
+        ];
+
+        // 4. OFERECER CAP PM
+        const capPmMessages = [
+            `🎉 *Conheça o CAP Ganhador Pagamento Mensal!* 🎉\n\nQue tal economizar mensalmente e ainda concorrer a prêmios incríveis de até *R$ 1,5 milhão*? 💰🏆\n\nCom o *CAP PM* da *Caixa Econômica Federal*, você guarda a partir de *R$ 50,00* por mês e participa de sorteios semanais, mensais e anuais! 🎫🎁\n\nE o melhor: ao final, você recebe todo o valor poupado, corrigido pela TR! 💸\n\nVenha até uma de nossas agências e saiba mais! 🏦\n\n*Não perca essa chance de realizar seus sonhos!* 🌟`,
+            `💡 *Invista no seu futuro com o CAP PM!* 💡\n\nEconomize de forma programada e concorra a prêmios que podem mudar sua vida! 💎\n\nGuarde mensalmente a partir de *R$ 50,00* e participe de sorteios com prêmios de até *R$ 1,5 milhão*! 🎉💰\n\nAo final, todo o valor investido volta para você, corrigido pela TR. Um ótimo negócio, não é? 😉\n\nProcure uma agência da *Caixa Econômica Federal* e saiba mais! 🏦\n\n*Transforme seus sonhos em realidade!* ✨`,
+            `🌟 *CAP Ganhador Pagamento Mensal - Sua chance de brilhar!* 🌟\n\nImagine economizar e ainda ter a oportunidade de ganhar prêmios incríveis! 💰🎁\n\nCom aportes mensais a partir de *R$ 50,00*, você participa de sorteios semanais, mensais e anuais, concorrendo a prêmios de até *R$ 1,5 milhão*! 🤑\n\nNo final do plano, resgate todo o valor investido, corrigido pela TR. 💸\n\nVisite uma agência da *Caixa Econômica Federal* e informe-se! 🏦\n\n*O futuro que você deseja começa agora!* 🚀`,
+            `🎈 *Economize e concorra a prêmios milionários!* 🎈\n\nCom o *CAP PM* da *Caixa Econômica Federal*, você guarda um valor mensal e tem a chance de ganhar prêmios de até *R$ 1,5 milhão*! 💎🏆\n\nAlém disso, ao término, todo o seu dinheiro volta corrigido pela TR. Um investimento seguro e cheio de vantagens! 💰\n\nPasse em uma de nossas agências e saiba como participar! 🏦\n\n*Invista nos seus sonhos!* ✨`,
+            `🚀 *CAP PM - Oportunidade Imperdível!* 🚀\n\nGuarde mensalmente a partir de *R$ 50,00* e concorra a prêmios incríveis com o *CAP PM* da *Caixa Econômica Federal*! 💰🎉\n\nPrêmios semanais, mensais e anuais que podem chegar a *R$ 1,5 milhão*! 🏆\n\nNo final, resgate todo o valor investido, corrigido pela TR. Simples assim! 💸\n\nVisite nossa agência mais próxima e saiba mais! 🏦\n\n*O que está esperando? Seu futuro começa agora!* 🌟`
+        ];
+
+        // 5. Energia Renovável
+        const energyRenewableMessages = [
+            `☀️ *Invista em Energia Solar e Economize!* ☀️\n\nJá pensou em reduzir sua conta de luz e ainda contribuir para um mundo mais sustentável? 🌎💚\n\nA *Caixa Econômica Federal* oferece linhas de crédito especiais para você financiar a instalação de painéis solares na sua residência ou empresa! 🏠🔌\n\nCondições imperdíveis e facilidades de pagamento para você aproveitar o melhor da energia renovável! 💡\n\nEntre em contato e saiba mais! 📞\n\n*Juntos por um futuro mais verde!* 🌱`,
+            `🌞 *Energia Renovável ao seu Alcance!* 🌞\n\nA *Caixa Econômica Federal* tem o financiamento ideal para você investir em energia solar e economizar na conta de luz! 💡💰\n\nContribua para a preservação do meio ambiente e ainda desfrute de todos os benefícios da energia limpa! 🌿🌎\n\nCondições especiais e atendimento personalizado para você! 🤗\n\nFale conosco e descubra como! 📞\n\n*Faça parte dessa mudança!* ✨`,
+            `⚡ *Sustentabilidade e Economia!* ⚡\n\nTransforme a luz do sol em energia para sua casa ou negócio com o financiamento de energia solar da *Caixa Econômica Federal*! 🏠🔌\n\nTaxas atrativas e prazos facilitados para você investir no seu futuro e do planeta! 🌍💚\n\nEntre em contato e saiba como aderir! 📞\n\n*Energia renovável: boa para você, essencial para o mundo!* 🌱`,
+            `💡 *Energia Solar: Invista no Futuro!* 💡\n\nA *Caixa Econômica Federal* apoia você na aquisição de sistemas de energia solar fotovoltaica! ☀️🔋\n\nEconomize na conta de luz e contribua para um mundo mais sustentável com nossas condições especiais de financiamento! 💰🌿\n\nFale conosco e comece a economizar! 📞\n\n*Juntos, iluminando um futuro melhor!* ✨`,
+            `🌟 *Energia Solar: Sustentabilidade em Alta!* 🌟\n\nFinancie seu sistema de energia solar com a *Caixa Econômica Federal* e aproveite os benefícios da energia limpa! ☀️🔌\n\nCondições exclusivas, taxas atrativas e suporte especializado para você! 💰🤝\n\nEntre em contato e faça parte dessa revolução energética! 📞\n\n*O futuro é agora! Invista em energia renovável!* 🌱`
+        ];
+
+        // 6. Incentivo LCI
+        const incentivoLCIMessages = [
+            `💰 *Invista com Segurança na LCI da Caixa!* 💰\n\nA Letra de Crédito Imobiliário (LCI) é uma excelente opção para você que busca rentabilidade e segurança! 🏦✨\n\nCom a *Caixa Econômica Federal*, você investe com isenção de Imposto de Renda para pessoas físicas e diversifica sua carteira de investimentos! 📈\n\nEntre em contato e saiba como começar! 📞\n\n*Seu futuro financeiro começa com boas escolhas!* 🌟`,
+            `📈 *LCI Caixa: Rentabilidade e Segurança!* 📈\n\nAproveite as vantagens de investir em LCI com a *Caixa Econômica Federal*! 💰\n\nIsenção de Imposto de Renda para PF, garantia de rentabilidade e a solidez de uma instituição financeira confiável! 🏦\n\nFale conosco e invista no seu futuro! 📞\n\n*Faça seu dinheiro trabalhar por você!* 💡`,
+            `🏠 *LCI Caixa: Oportunidade Imperdível!* 🏠\n\nInvista na Letra de Crédito Imobiliário da *Caixa Econômica Federal* e desfrute de benefícios exclusivos! 💎\n\nIsenção de IR para pessoas físicas e excelentes retornos para o seu investimento! 💰\n\nEntre em contato e saiba mais! 📞\n\n*Seu patrimônio merece um investimento seguro!* 🔒`,
+            `🌟 *Conheça a LCI da Caixa!* 🌟\n\nUma opção de investimento que une rentabilidade e segurança, com isenção de IR para PF! 💰\n\nCom a *Caixa Econômica Federal*, você tem a confiança e tradição de uma instituição sólida! 🏦\n\nFale conosco e diversifique seus investimentos! 📞\n\n*Invista no seu futuro financeiro!* 📊`,
+            `💡 *Invista em LCI com a Caixa!* 💡\n\nA Letra de Crédito Imobiliário é uma excelente alternativa para quem busca bons rendimentos e segurança! 📈\n\nIsenção de Imposto de Renda para pessoas físicas e a solidez da *Caixa Econômica Federal*! 🏦\n\nEntre em contato e comece a investir hoje mesmo! 📞\n\n*Seu futuro começa agora!* 🌠`
+        ];
+
+        // 7. VOCÊ NO AZUL
+        const blueYouMessages = [
+            `🔵 *VOCÊ NO AZUL - Aproveite Agora!* 🔵\n\nA *Caixa Econômica Federal* oferece descontos de até *90%* para você regularizar suas dívidas de créditos comerciais! 💰\n\nEsta é a oportunidade perfeita para limpar seu nome e reorganizar sua vida financeira! 📝💙\n\nEntre em contato e saiba como participar! 📞\n\n*Estamos prontos para ajudá-lo!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `💙 *Campanha VOCÊ NO AZUL!* 💙\n\nNão perca a chance de quitar suas dívidas com descontos incríveis de até *90%*! 💵\n\nA *Caixa Econômica Federal* está aqui para ajudá-lo a retomar o controle da sua vida financeira! 📝\n\nContate-nos agora mesmo! 📞\n\n*Juntos, vamos virar esse jogo!* ⚽\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🌟 *VOCÊ NO AZUL - Limpe seu Nome!* 🌟\n\nCondições especiais para regularizar suas dívidas na *Caixa Econômica Federal*! 💰\n\nDescontos de até *90%* para você começar uma nova fase na sua vida financeira! 📝✨\n\nEntre em contato e aproveite! 📞\n\n*Estamos aqui por você!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🚀 *VOCÊ NO AZUL - Hora de Recomeçar!* 🚀\n\nA *Caixa Econômica Federal* oferece condições imperdíveis para você quitar suas dívidas com descontos de até *90%*! 💸\n\nNão deixe essa oportunidade passar! Reorganize suas finanças e volte a crescer! 🌱\n\nFale conosco! 📞\n\n*Conte com a gente!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `💡 *VOCÊ NO AZUL - Descontos Especiais!* 💡\n\nRegularize suas dívidas de créditos comerciais com a *Caixa Econômica Federal*! 💰\n\nDescontos incríveis de até *90%* para você retomar o controle financeiro! 📝\n\nEntre em contato agora mesmo! 📞\n\n*Juntos, fazemos a diferença!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`
+        ];
+
+        // 8. Ação Tudo em Dia (com ano dinâmico {year})
+        const allClearActionMessages = [
+            `🗓️ *TUDO EM DIA CAIXA {year}!* 🗓️\n\nPrepare-se para colocar suas contas em ordem com o pé direito! 👣\n\nA *Caixa Econômica Federal* oferece descontos de até *90%* para você regularizar suas dívidas e colocar tudo em dia! 💰\n\nNão perca essa chance de equilibrar suas finanças! 📊\n\nEntre em contato e saiba mais! 📞\n\n*Estamos prontos para ajudá-lo a conquistar seus objetivos!* 🌟\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🎯 *Ação TUDO EM DIA {year}!* 🎯\n\nQue tal ficar em dia e sem dívidas em {year}? 🗓️\n\nA *Caixa Econômica Federal* está oferecendo descontos incríveis de até *90%* para você quitar suas pendências! 💸\n\nAproveite esta oportunidade única! 🏃‍♂️\n\nEntre em contato! 📞\n\n*Juntos, alcançaremos suas metas!* 🏆\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🌠 *TUDO EM DIA {year} - Fique sem Dívidas!* 🌠\n\nA *Caixa Econômica Federal* quer ajudar você a regularizar suas dívidas com descontos de até *90%*! 💰\n\nNão deixe para depois, organize sua vida financeira agora mesmo! 📈\n\nFale conosco e saiba como! 📞\n\n*Estamos ao seu lado nessa jornada!* 🤝\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🚀 *TUDO EM DIA CAIXA {year} - Decole sem Dívidas!* 🚀\n\nAproveite descontos de até *90%* para quitar suas dívidas com a *Caixa Econômica Federal*! 💸\n\nSiga em {year} com tranquilidade e segurança financeira! 🛤️\n\nEntre em contato e aproveite! 📞\n\n*Vamos juntos rumo ao sucesso!* 🌟\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`,
+            `🔔 *Ação TUDO EM DIA {year} - Última Chamada!* 🔔\n\nA *Caixa Econômica Federal* oferece condições imperdíveis para você regularizar suas dívidas com descontos de até *90%*! 💰\n\nNão perca essa oportunidade de ficar sem pendências! 🗓️\n\nEntre em contato agora mesmo! 📞\n\n*Conte conosco para alcançar seus objetivos!* 💙\n\nSe já realizou o pagamento, por favor, ignore esta mensagem. 🙏`
+        ];
+
+        // 9. CRÉDITO CONSIGNADO/RENOVAÇÃO
+        const creditoConsignadoMessages = [
+            `📣 *Atenção!* 📣\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* está com uma oferta imperdível para você! 💰\n\n🔹 *Crédito Consignado* com taxas especiais e condições exclusivas! 🤑\n🔹 *Renove o seu empréstimo* com condições ainda melhores! 🔄\n🔹 *Parcelas que cabem no seu bolso* e sem burocracia! 💳\n\n💼 Aproveite para realizar seus sonhos ou organizar suas finanças com a segurança e confiança de sempre. 🌟\n\n*Entre em contato agora mesmo e saiba mais sobre essa oportunidade!* 📞\n{generalPhone}\n{generalEmail}\n\n*Caixa Econômica Federal*\n*Apoio e confiança para o que você precisar.* 💙`,
+            `🔥 *Oferta Exclusiva!* 🔥\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* preparou algo especial para você! 🎁\n\n✨ *Crédito Consignado* com as melhores taxas do mercado! 💲\n✨ *Renove seu empréstimo* com vantagens incríveis! 🔄\n✨ *Facilidade no pagamento* e sem complicações! 💳\n\n💡 Não perca a chance de tirar seus planos do papel com toda a segurança que a Caixa oferece. 🤝\n\n*Contate-nos agora mesmo!* 📞\n{generalPhone}\n{generalEmail}\n\n*Caixa Econômica Federal*\n*Sempre ao seu lado.* 💙`,
+            `💰 *Crédito Consignado Especial!* 💰\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* tem uma excelente oportunidade para você! 🏦\n\n🔸 *Taxas reduzidas* e condições imperdíveis! 🤑\n🔸 *Renovação de empréstimo* com ainda mais benefícios! 🔄\n🔸 *Parcelas acessíveis* e sem burocracia! 💳\n\n🌟 Realize seus projetos ou organize suas finanças com quem você confia. 😊\n\n*Entre em contato e saiba mais!* 📞\n{generalPhone}\n{generalEmail}\n\n*Caixa Econômica Federal*\n*Compromisso com você.* 💙`,
+            `🌟 *Não Perca!* 🌟\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* está oferecendo:\n\n✅ *Crédito Consignado* com condições especiais! 💰\n✅ *Renovação facilitada* do seu empréstimo! 🔄\n✅ *Parcelas que cabem no seu orçamento*! 💳\n\n🚀 É a sua chance de realizar sonhos e planejar o futuro com tranquilidade! 🌈\n\n*Fale conosco agora mesmo!* 📞\n{generalPhone}\n{generalEmail}\n\n*Caixa Econômica Federal*\n*Tradição e segurança ao seu lado.* 💙`,
+            `💡 *Oportunidade Única!* 💡\n\n*Prezado(a) Cliente*,\n\nA *Caixa Econômica Federal* tem uma proposta imperdível para você! 🎯\n\n🌠 *Crédito Consignado* com taxas exclusivas! 💲\n🌠 *Renovação de empréstimo* com vantagens especiais! 🔄\n🌠 *Pagamento facilitado* e sem complicações! 💳\n\n💖 Aproveite para dar aquele passo que você sempre quis com total segurança! 🤗\n\n*Entre em contato e aproveite!* 📞\n{generalPhone}\n{generalEmail}\n\n*Caixa Econômica Federal*\n*Ao seu lado em todos os momentos.* 💙`
+        ];
+
+        // 10. CRÉDITO PJ
+        const creditoPJMessages = [
+            `📢 *Prezado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* 📢\n\nVocê está em busca de linhas de crédito para sua empresa com taxas de juros significativamente mais baixas e com carência para iniciar os pagamentos? 💰🕒\n\nVenha realizar uma avaliação conosco na *CAIXA*! 🏦\n\nEntre em contato com o *SETOR PJ da CAIXA ARCOS* pelos telefones 📞 {pjPhone} ou pelo e-mail 📧 {pjEmail}, ou visite-nos pessoalmente na agência Arcos da CAIXA. 🤝\n\n*Obrigado pela preferência!* 🙏\n\n*Caixa Econômica Federal - O apoio que a sua empresa merece!* 💙`,
+            `💼 *Saudações, estimado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS!* 💼\n\nSe você procura por linhas de crédito para sua empresa com taxas de juros reduzidas e carência para iniciar os pagamentos, temos excelentes notícias! 🎯\n\nAgende uma avaliação na *CAIXA* e descubra as melhores soluções para o seu negócio. 🏢\n\nContate o *SETOR PJ da CAIXA ARCOS* pelos telefones 📞 {pjPhone}, via e-mail 📧 {pjEmail}, ou visite-nos na agência Arcos da CAIXA. 📍\n\n*Agradecemos a sua preferência e confiança!* 🤗\n\n*Caixa Econômica Federal - Parceira do seu crescimento!* 💙`,
+            `🏦 *Olá, Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS!* 🏦\n\nEstá em busca de crédito para impulsionar sua empresa, com taxas atrativas e prazo de carência para começar a pagar? 💡\n\nVenha até a *CAIXA* e faça uma avaliação personalizada. 📊\n\nEntre em contato com o *SETOR PJ da CAIXA ARCOS* pelo telefone 📞 {pjPhone}, pelo e-mail 📧 {pjEmail}, ou pessoalmente na agência Arcos. 🗺️\n\n*Obrigado pela preferência!* 🙏\n\n*Caixa Econômica Federal - Impulsionando o sucesso do seu negócio!* 💙`,
+            `🔔 *Estimado Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* 🔔\n\nProcurando linhas de crédito para sua empresa com juros mais baixos e carência nos pagamentos? Temos a solução ideal para você! 💎\n\nRealize uma avaliação na *CAIXA* e descubra nossas condições especiais. 📈\n\nContato pelo *SETOR PJ da CAIXA ARCOS*: telefones 📞 {pjPhone}, e-mail 📧 {pjEmail}, ou visite-nos na agência Arcos. 🏢\n\n*Obrigado pela preferência!* 🤝\n\n*Caixa Econômica Federal - O parceiro financeiro que você confia!* 💙`,
+            `✨ *Caro Cliente da CAIXA ECONÔMICA FEDERAL AGÊNCIA ARCOS,* ✨\n\nSe a sua empresa precisa de crédito com taxas competitivas e carência para início dos pagamentos, estamos aqui para ajudar! 🚀\n\nVenha até a *CAIXA* para uma avaliação completa das suas necessidades. 📝\n\nContate o *SETOR PJ da CAIXA ARCOS* através do telefone 📞 {pjPhone}, e-mail 📧 {pjEmail}, ou visite nossa agência em Arcos. 🏦\n\n*Obrigado pela preferência!* 🙌\n\n*Caixa Econômica Federal - Juntos pelo sucesso do seu empreendimento!* 💙`
+        ];
+
+        // 11. CONTRATAÇÃO CARTÃO DE CRÉDITO
+        const contratacaoCartaoMessages = [
+            `💳 *Prezado(a) Cliente,* 💳\n\nTemos o prazer de informar que seu cartão de crédito está pré-aprovado e pronto para contratação! 🎉\n\nPara prosseguir, por favor, dirija-se à agência da *Caixa Econômica Federal* mais próxima, munido(a) dos seguintes documentos: 📄\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência 🏠\n- Comprovante de renda 💵\n\nEstamos à disposição para auxiliá-lo(a) em todo o processo. 🤝\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`,
+            `🌟 *Estimado(a) Cliente,* 🌟\n\nSeu cartão de crédito está pré-aprovado e aguardando sua contratação! ✨\n\nPara formalizar, compareça à agência da *Caixa Econômica Federal* mais próxima com os seguintes documentos: 📝\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência atual 🏡\n- Comprovante de renda atualizado 💰\n\nEstamos prontos para auxiliá-lo(a) em cada etapa. 🤗\n\nCordialmente,\n*Caixa Econômica Federal* 💙`,
+            `📢 *Aviso Importante ao Cliente,* 📢\n\nInformamos que seu cartão de crédito encontra-se pré-aprovado e disponível para contratação imediata! 🛍️\n\nPara continuar, dirija-se à agência da *Caixa Econômica Federal* mais próxima, portando os documentos abaixo: 📂\n\n- Documento oficial com foto 🆔\n- Comprovante de endereço 🏘️\n- Comprovante de renda 💲\n\nSerá um prazer atendê-lo(a) e esclarecer quaisquer dúvidas. 😊\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`,
+            `✨ *Caro(a) Cliente,* ✨\n\nSeu cartão de crédito está pré-aprovado e à sua espera! 🎊\n\nPara efetivar a contratação, por gentileza, compareça à agência da *Caixa Econômica Federal* mais próxima, levando: 📋\n\n- Documento de identificação com foto 🆔\n- Comprovante de residência atual 🏠\n- Comprovante de renda recente 💵\n\nEstamos disponíveis para oferecer todo o suporte necessário. 🤝\n\nCordialmente,\n*Caixa Econômica Federal* 💙`,
+            `💼 *Prezado(a) Cliente,* 💼\n\nÉ com satisfação que comunicamos que seu cartão de crédito está pré-aprovado! 🎇\n\nPara proceder com a contratação, dirija-se à agência da *Caixa Econômica Federal* mais próxima, portando os seguintes documentos: 🗂️\n\n- Documento oficial com foto 🆔\n- Comprovante de residência atualizado 🏡\n- Comprovante de renda atual 💰\n\nSerá uma honra auxiliá-lo(a) neste processo. 😊\n\nAtenciosamente,\n*Caixa Econômica Federal* 💙`
+        ];
+
+        // 12. OPEN FINANCE (SERVIDOR) — corrigido de ** para * compatível com WhatsApp
+        const openFinanceServidorMessages = [
+            `💼 *Prezado Servidor Público, {saudacaoMinuscula}!* 🌞\n\nÉ com grande satisfação que informamos que a *Caixa Econômica Federal* está disponibilizando taxas excepcionalmente atrativas no crédito consignado para servidores que possuem empréstimos em outras instituições financeiras (portabilidade). 💰🏦\n\nPara usufruir desta oportunidade singular, convidamos Vossa Senhoria a acessar o *Open Finance* em nosso aplicativo e autorizar a visualização de seus empréstimos e produtos financeiros em outros bancos. 📱🔐\n\nCom o cadastro efetivado no Open Finance, nossa equipe entrará em contato para oferecer-lhe uma proposta com taxas mais vantajosas em comparação àquelas do banco de origem. 📞💡\n\n*Passo a passo para adesão:*\n\n1. Acesse o aplicativo *Caixa* em seu dispositivo móvel. 📲\n2. Utilize a ferramenta de busca (lupa) e procure por *Open Finance*. 🔍\n3. Realize o cadastro informando a instituição financeira de origem. 📝\n4. No aplicativo do outro banco, efetive o compartilhamento de dados conforme solicitado. 🔄\n5. Pronto! Nossa equipe entrará em contato em breve. ✅\n\nCaso encontre quaisquer dificuldades neste procedimento, sinta-se à vontade para dirigir-se até a agência, onde estaremos prontos para auxiliá-lo. 🤝\n\nAtenciosamente,\n\n{managerSignature}`,
+            `👋 *Estimado Servidor Público, saudações cordiais!* 🌟\n\nA *Caixa Econômica Federal* tem a honra de comunicar que dispõe de taxas especiais no crédito consignado, destinadas exclusivamente aos servidores que possuem empréstimos ativos em outras instituições bancárias (portabilidade). 💎🏛️\n\nPara aproveitar esta proposta ímpar, solicitamos que Vossa Senhoria utilize o *Open Finance* em nosso aplicativo, autorizando-nos a acessar informações referentes aos seus empréstimos e produtos financeiros em outros bancos. 📲🔓\n\nApós a conclusão do cadastro no Open Finance, entraremos em contato para apresentar-lhe uma oferta com taxas mais competitivas do que as praticadas pela instituição de origem. 📞✨\n\n*Orientações para adesão:*\n\n1. Abra o aplicativo *Caixa* em seu smartphone. 📱\n2. Toque no ícone da lupa e pesquise por *Open Finance*. 🔎\n3. Proceda com o cadastro, informando o banco de origem. 🖋️\n4. No aplicativo da outra instituição, autorize o compartilhamento de dados solicitado. 🔄\n5. Finalizado! Em breve, entraremos em contato. ✅\n\nCaso necessite de assistência adicional, estaremos à disposição em nossa agência para auxiliá-lo em todas as etapas. 🤗\n\nCordialmente,\n\n{managerSignature}`,
+            `📣 *Prezado Servidor Público, {saudacaoMinuscula}!* ☀️\n\nCom o intuito de proporcionar benefícios exclusivos, a *Caixa Econômica Federal* anuncia taxas diferenciadas no crédito consignado para servidores com empréstimos em outras instituições (portabilidade). 💰🏦\n\nVossa Senhoria pode autorizar a Caixa a visualizar seus empréstimos e produtos financeiros de outros bancos através do *Open Finance* em nosso aplicativo. 📱🔑\n\nUma vez cadastrado no Open Finance, entraremos em contato para oferecer-lhe condições mais favoráveis do que as atualmente vigentes em seu banco de origem. 📞💡\n\n*Procedimento para adesão:*\n\n1. Acesse o aplicativo *Caixa* em seu dispositivo. 📲\n2. Utilize a função de busca e digite *Open Finance*. 🔍\n3. Cadastre-se, informando a instituição financeira onde possui empréstimo. 📝\n4. No aplicativo do outro banco, confirme o compartilhamento de dados. 🔄\n5. Concluído! Nossa equipe fará contato em breve. ✅\n\nSe encontrar qualquer dificuldade, não hesite em visitar nossa agência, onde estaremos prontos para auxiliá-lo pessoalmente. 🤝\n\nAtenciosamente,\n\n{managerSignature}`,
+            `💡 *Estimado Servidor Público, saudações!* 🌞\n\nÉ com imenso prazer que a *Caixa Econômica Federal* informa sobre a disponibilização de taxas especiais no crédito consignado para servidores públicos que mantêm empréstimos em outras instituições financeiras (portabilidade). 💎🏦\n\nPara aproveitar esta condição exclusiva, solicitamos que Vossa Senhoria realize o cadastro no *Open Finance* através do aplicativo da Caixa, autorizando-nos a acessar informações sobre seus empréstimos e produtos em outros bancos. 📲🔒\n\nApós a conclusão do cadastro, nossa equipe entrará em contato para apresentar uma proposta com taxas mais atrativas do que as oferecidas pelo banco de origem. 📞✨\n\n*Instruções para proceder:*\n\n1. Abra o aplicativo *Caixa* em seu celular. 📱\n2. Utilize a lupa para pesquisar por *Open Finance*. 🔎\n3. Realize o cadastro, informando a instituição financeira correspondente. 🖋️\n4. No aplicativo do outro banco, efetue o compartilhamento de dados conforme solicitado. 🔄\n5. Tudo pronto! Entraremos em contato em breve. ✅\n\nCaso necessite de qualquer auxílio, estaremos à disposição em nossa agência para atendê-lo pessoalmente. 🤗\n\nCordialmente,\n\n{managerSignature}`,
+            `🚀 *Prezado Servidor Público, {saudacaoMinuscula}!* 🌅\n\nA *Caixa Econômica Federal* tem a honra de oferecer taxas de crédito consignado ainda mais competitivas para servidores que possuem empréstimos em outras instituições bancárias (portabilidade). 💰🚀\n\nConvidamos Vossa Senhoria a utilizar o *Open Finance* em nosso aplicativo, autorizando a Caixa a visualizar seus empréstimos e produtos financeiros em outros bancos. 📱🔐\n\nCom o cadastro concluído, entraremos em contato para oferecer-lhe uma proposta com taxas mais vantajosas do que as praticadas pela instituição de origem. 📞💡\n\n*Passo a passo para adesão:*\n\n1. Acesse o aplicativo *Caixa* em seu smartphone. 📲\n2. Utilize a ferramenta de busca (lupa) e procure por *Open Finance*. 🔍\n3. Efetue o cadastro, informando o banco onde possui empréstimo. 📝\n4. No aplicativo da outra instituição, autorize o compartilhamento de dados. 🔄\n5. Pronto! Entraremos em contato em breve. ✅\n\nEstamos à disposição em nossa agência para auxiliá-lo em caso de dúvidas ou dificuldades. 🤝\n\nAtenciosamente,\n\n{managerSignature}`
+        ];
+
+        // =========================================================================
+        // Utilitários de Notificação (Toasts em vez de alert bloqueado)
+        // =========================================================================
+        function showToast(text, type) {
+            var container = document.getElementById("toastContainer");
+            var toast = document.createElement("div");
+            var colors = {
+                success: "bg-emerald-600 text-white border-emerald-700",
+                error: "bg-red-600 text-white border-red-700",
+                info: "bg-[#003B73] text-white border-[#005CA9]"
+            };
+            toast.className = "pointer-events-auto px-4 py-3 rounded-xl shadow-lg border text-xs sm:text-sm font-medium flex items-center justify-between gap-3 transition-all duration-300 " + (colors[type] || colors.info);
+            var span = document.createElement("span");
+            span.textContent = text;
+            var closeBtn = document.createElement("button");
+            closeBtn.type = "button";
+            closeBtn.className = "opacity-80 hover:opacity-100 font-bold";
+            closeBtn.textContent = "✕";
+            closeBtn.onclick = function() { toast.remove(); };
+            toast.appendChild(span);
+            toast.appendChild(closeBtn);
+            container.appendChild(toast);
+            setTimeout(function() {
+                if (toast.parentNode) {
+                    toast.style.opacity = "0";
+                    setTimeout(function() { toast.remove(); }, 250);
+                }
+            }, 4000);
+        }
+
+        function showFieldError(errorId, inputId, msg) {
+            var errEl = document.getElementById(errorId);
+            var inpEl = document.getElementById(inputId);
+            if (errEl) {
+                errEl.textContent = msg;
+                errEl.classList.remove("hidden");
+            }
+            if (inpEl) {
+                inpEl.classList.add("border-red-500", "ring-2", "ring-red-200");
+                inpEl.focus();
+            }
+            showToast(msg, "error");
+        }
+
+        function clearFieldError(errorId, inputId) {
+            var errEl = document.getElementById(errorId);
+            var inpEl = document.getElementById(inputId);
+            if (errEl) {
+                errEl.textContent = "";
+                errEl.classList.add("hidden");
+            }
+            if (inpEl) {
+                inpEl.classList.remove("border-red-500", "ring-2", "ring-red-200");
+            }
+        }
+
+        function pulsePanel(panelId) {
+            var panel = document.getElementById(panelId);
+            if (!panel) return;
+            panel.classList.add("border-[#F39200]", "bg-amber-50/70", "ring-2", "ring-amber-200");
+            setTimeout(function() {
+                panel.classList.remove("ring-2", "ring-amber-200");
+            }, 1800);
+        }
+
+        // =========================================================================
+        // Saudação, Assinatura e Substituição de Variáveis
+        // =========================================================================
+        function getTimeBasedGreeting() {
+            var h = new Date().getHours();
+            if (h >= 5 && h < 12) return "Bom dia";
+            if (h >= 12 && h < 18) return "Boa tarde";
+            return "Boa noite";
+        }
+
+        function getActiveGreeting() {
+            var mode = document.getElementById("greetingMode").value;
+            if (mode === "original") return "Bom dia/tarde/noite";
+            if (mode === "auto") return getTimeBasedGreeting();
+            return mode;
+        }
+
+        function buildManagerSignature() {
+            return `*${agencyConfig.managerName}*\n${agencyConfig.managerRole}\n${agencyConfig.managerCerts}\n${agencyConfig.managerEmail}\nTel agência: ${agencyConfig.generalPhone}\nCel: ${agencyConfig.managerCell}`;
+        }
+
+        function applyPersonalizationAndTokens(rawTemplate) {
+            if (!rawTemplate) return "";
+            var greeting = getActiveGreeting();
+            var greetingLower = greeting === "Bom dia/tarde/noite" ? "bom dia" : greeting.toLowerCase();
+            var clientName = document.getElementById("clientName").value.trim();
+            var code = document.getElementById("code").value.trim() || "0000";
+            var year = document.getElementById("campaignYear").value || "2026";
+            var monthsStr = collectMonthsList().join(", ") || "em aberto";
+
+            var text = rawTemplate
+                .replace(/\{code\}/g, code)
+                .replace(/\{months\}/g, monthsStr)
+                .replace(/\{year\}/g, year)
+                .replace(/\{saudacao\}/g, greeting)
+                .replace(/\{saudacaoMinuscula\}/g, greetingLower)
+                .replace(/\{generalPhone\}/g, agencyConfig.generalPhone)
+                .replace(/\{generalEmail\}/g, agencyConfig.generalEmail)
+                .replace(/\{pjPhone\}/g, agencyConfig.pjPhone)
+                .replace(/\{pjEmail\}/g, agencyConfig.pjEmail)
+                .replace(/\{managerSignature\}/g, buildManagerSignature());
+
+            if (rawTemplate.indexOf("{cliente}") !== -1) {
+                text = text.replace(/\{cliente\}/g, clientName || "Cliente");
+            } else if (clientName) {
+                // Personaliza saudações genéricas com o nome informado
+                text = text
+                    .replace(/Olá, prezado cliente!/gi, "Olá, " + clientName + "!")
+                    .replace(/Atenção, prezado cliente!/gi, "Atenção, " + clientName + "!")
+                    .replace(/Prezado\(a\) Cliente/g, "Prezado(a) " + clientName)
+                    .replace(/Estimado\(a\) Cliente/g, "Estimado(a) " + clientName)
+                    .replace(/Caro\(a\) Cliente/g, "Caro(a) " + clientName)
+                    .replace(/Prezado cliente,/g, "Prezado(a) " + clientName + ",")
+                    .replace(/Prezado Servidor Público/g, "Prezado(a) " + clientName)
+                    .replace(/Estimado Servidor Público/g, "Estimado(a) " + clientName)
+                    .replace(/\*Olá!\*/g, "*Olá, " + clientName + "!*")
+                    .replace(/\*Saudações!\*/g, "*Saudações, " + clientName + "!*");
+            }
+
+            return text;
+        }
+
+        // =========================================================================
+        // Controle de Variações sem Repetição Seguida
+        // =========================================================================
+        function pickNonRepeatingIndex(length, currentIdx) {
+            if (length <= 1) return 0;
+            var next = Math.floor(Math.random() * length);
+            if (next === currentIdx) {
+                next = (next + 1) % length;
+            }
+            return next;
+        }
+
+        function activateCampaign(key, label, variationsArray) {
+            var nextIndex = 0;
+            if (activeState.key === key && variationsArray.length > 1) {
+                nextIndex = pickNonRepeatingIndex(variationsArray.length, activeState.index);
+            } else {
+                nextIndex = Math.floor(Math.random() * variationsArray.length);
+            }
+
+            activeState = {
+                key: key,
+                label: label,
+                variations: variationsArray,
+                index: nextIndex,
+                rawBaseTemplate: variationsArray[nextIndex]
+            };
+
+            highlightActiveCampaignButton(key);
+            renderActiveVariation();
+        }
+
+        function highlightActiveCampaignButton(key) {
+            var allBtns = document.querySelectorAll(".campaign-btn");
+            allBtns.forEach(function(btn) {
+                if (btn.getAttribute("data-campaign") === key) {
+                    btn.classList.add("active-campaign");
+                } else {
+                    btn.classList.remove("active-campaign");
+                }
+            });
+        }
+
+        function renderActiveVariation() {
+            document.getElementById("activeCampaignTitle").textContent = activeState.label;
+            if (activeState.variations.length > 0) {
+                document.getElementById("variationCounter").textContent = (activeState.index + 1) + " / " + activeState.variations.length;
+                var finalMsg = applyPersonalizationAndTokens(activeState.rawBaseTemplate);
+                document.getElementById("message").value = finalMsg;
+                clearFieldError("messageError", "message");
+                updateMessagePreviewAndStats();
+            } else {
+                document.getElementById("variationCounter").textContent = "—";
+            }
+        }
+
+        function stepVariation(delta) {
+            if (!activeState.variations || activeState.variations.length === 0) {
+                showToast("Selecione uma campanha primeiro para alternar variações.", "info");
+                return;
+            }
+            var len = activeState.variations.length;
+            activeState.index = (activeState.index + delta + len) % len;
+            activeState.rawBaseTemplate = activeState.variations[activeState.index];
+            renderActiveVariation();
+        }
+
+        function randomizeCurrentVariation() {
+            if (!activeState.variations || activeState.variations.length === 0) {
+                showToast("Selecione uma campanha primeiro para sortear variações.", "info");
+                return;
+            }
+            activeState.index = pickNonRepeatingIndex(activeState.variations.length, activeState.index);
+            activeState.rawBaseTemplate = activeState.variations[activeState.index];
+            renderActiveVariation();
+        }
+
+        function refreshCurrentMessagePersonalization() {
+            if (activeState.rawBaseTemplate) {
+                renderActiveVariation();
+            }
+        }
+
+        // =========================================================================
+        // Funções Originais das 12 Campanhas (Compatibilidade Total + Validação UI)
+        // =========================================================================
+        function validateFourDigitCode() {
+            var code = document.getElementById("code").value.trim();
+            if (!/^\d{4}$/.test(code)) {
+                pulsePanel("codePanel");
+                showFieldError("codeError", "code", "Insira exatamente os 4 dígitos finais do cartão.");
+                return false;
+            }
+            clearFieldError("codeError", "code");
+            return true;
+        }
+
+        function handleCodeInput() {
+            var input = document.getElementById("code");
+            input.value = input.value.replace(/\D/g, "").slice(0, 4);
+            if (/^\d{4}$/.test(input.value)) {
+                clearFieldError("codeError", "code");
+                if (activeState.key === "activation" || activeState.key === "incentive") {
+                    renderActiveVariation();
+                }
+            }
+        }
+
+        function setActivationMessage() {
+            if (!validateFourDigitCode()) return;
+            activateCampaign("activation", "Ativação de Cartão", activationMessages);
+        }
+
+        function setIncentiveMessage() {
+            if (!validateFourDigitCode()) return;
+            activateCampaign("incentive", "Incentivar Primeira Compra", incentiveMessages);
+        }
+
+        function collectMonthsList() {
+            var months = parseInt(document.getElementById("months").value, 10);
+            var list = [];
+            if (months > 0 && months <= 12) {
+                for (var i = 1; i <= months; i++) {
+                    var el = document.getElementById("month" + i);
+                    if (el && el.value.trim()) {
+                        list.push(el.value.trim());
+                    }
+                }
+            }
+            return list;
+        }
+
+        function setCollectionMessage() {
+            var months = parseInt(document.getElementById("months").value, 10);
+            document.getElementById("quickMonths").classList.remove("hidden");
+            if (!months || months <= 0) {
+                document.getElementById("months").value = "1";
+                generateMonthInputs();
+                pulsePanel("monthsPanel");
+                showFieldError("monthsError", "month1", "Informe a competência em atraso abaixo ou clique nos atalhos rápidos.");
+                return;
+            }
+            clearFieldError("monthsError", "months");
+
+            var monthsList = collectMonthsList();
+            if (monthsList.length === 0) {
+                showFieldError("monthsError", "month1", "Preencha pelo menos um mês em atraso (ex: 10/2026).");
+                return;
+            }
+            activateCampaign("collection", "Cobrança de Parcelas", collectionMessages);
+        }
+
+        function setCapPmMessage() {
+            activateCampaign("capPm", "Oferecer CAP PM", capPmMessages);
+        }
+
+        function setEnergyRenewableMessage() {
+            activateCampaign("energy", "Energia Renovável", energyRenewableMessages);
+        }
+
+        function setIncentivoLCIMessage() {
+            activateCampaign("lci", "Incentivo LCI", incentivoLCIMessages);
+        }
+
+        function setBlueYouMessage() {
+            activateCampaign("blueYou", "Você no Azul", blueYouMessages);
+        }
+
+        function setAllClearActionMessage() {
+            pulsePanel("yearPanel");
+            activateCampaign("allClear", "Ação Tudo em Dia", allClearActionMessages);
+        }
+
+        function handleYearChange() {
+            if (activeState.key === "allClear") {
+                renderActiveVariation();
+            }
+        }
+
+        function setCreditoConsignado() {
+            activateCampaign("consignado", "Crédito Consignado / Renovação", creditoConsignadoMessages);
+        }
+
+        function setCreditoPJMessage() {
+            activateCampaign("creditoPJ", "Crédito PJ", creditoPJMessages);
+        }
+
+        function setContratacaoCartao() {
+            activateCampaign("contratacaoCartao", "Contratação Cartão de Crédito", contratacaoCartaoMessages);
+        }
+
+        function setOpenFinanceServidor() {
+            activateCampaign("openFinance", "Open Finance (Servidor)", openFinanceServidorMessages);
+        }
+
+        // =========================================================================
+        // Geração Inteligente de Meses em Atraso + Atalhos Recentes
+        // =========================================================================
+        function formatMonthMask(val) {
+            var clean = val.trim();
+            // Formata 4 dígitos puros ex: 0926 -> 09/26 ou 6 dígitos 092026 -> 09/2026
+            if (/^\d{4}$/.test(clean)) {
+                return clean.slice(0, 2) + "/" + clean.slice(2);
+            }
+            if (/^\d{6}$/.test(clean)) {
+                return clean.slice(0, 2) + "/" + clean.slice(2);
+            }
+            return clean;
+        }
+
+        function generateMonthInputs() {
+            var monthsVal = parseInt(document.getElementById("months").value, 10);
+            var container = document.getElementById("monthInputs");
+            var quickBox = document.getElementById("quickMonths");
+
+            // Preserva valores anteriores antes de recriar
+            var existingValues = {};
+            var oldInputs = container.querySelectorAll("input");
+            oldInputs.forEach(function(inp, idx) {
+                existingValues[idx + 1] = inp.value;
+            });
+
+            container.innerHTML = "";
+
+            if (isNaN(monthsVal) || monthsVal <= 0) {
+                return;
+            }
+            if (monthsVal > 12) {
+                monthsVal = 12;
+                document.getElementById("months").value = "12";
+            }
+
+            clearFieldError("monthsError", "months");
+            quickBox.classList.remove("hidden");
+
+            for (var i = 1; i <= monthsVal; i++) {
+                var wrapper = document.createElement("div");
+                wrapper.className = "flex flex-col";
+
+                var label = document.createElement("label");
+                label.setAttribute("for", "month" + i);
+                label.className = "text-[11px] font-semibold text-slate-600 mb-0.5";
+                label.textContent = "Mês " + i + ":";
+
+                var input = document.createElement("input");
+                input.type = "text";
+                input.id = "month" + i;
+                input.maxLength = 12;
+                input.placeholder = "MM/AAAA";
+                input.value = existingValues[i] || "";
+                input.className = "w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-800 focus:border-[#005CA9] outline-none";
+                input.addEventListener("blur", function(ev) {
+                    ev.target.value = formatMonthMask(ev.target.value);
+                    if (activeState.key === "collection") renderActiveVariation();
+                });
+                input.addEventListener("input", function() {
+                    clearFieldError("monthsError", "month1");
+                    if (activeState.key === "collection") renderActiveVariation();
+                });
+
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                container.appendChild(wrapper);
+            }
+        }
+
+        function initQuickMonthsButtons() {
+            var wrap = document.getElementById("quickMonthsButtons");
+            wrap.innerHTML = "";
+            var now = new Date();
+            for (var offset = 6; offset >= 1; offset--) {
+                var d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                var mm = String(d.getMonth() + 1).padStart(2, "0");
+                var yyyy = d.getFullYear();
+                var label = mm + "/" + yyyy;
+
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "px-2.5 py-1 rounded-md border border-slate-200 bg-slate-100 hover:bg-blue-50 hover:border-[#005CA9] text-xs font-medium text-slate-700 transition";
+                btn.textContent = "+ " + label;
+                btn.onclick = (function(competencia) {
+                    return function() {
+                        toggleQuickCompetencia(competencia);
+                    };
+                })(label);
+                wrap.appendChild(btn);
+            }
+        }
+
+        function toggleQuickCompetencia(competencia) {
+            var current = collectMonthsList();
+            var idx = current.indexOf(competencia);
+            if (idx !== -1) {
+                current.splice(idx, 1);
+            } else if (current.length < 12) {
+                current.push(competencia);
+            }
+            document.getElementById("months").value = current.length > 0 ? String(current.length) : "";
+            generateMonthInputs();
+            for (var i = 0; i < current.length; i++) {
+                var inp = document.getElementById("month" + (i + 1));
+                if (inp) inp.value = current[i];
+            }
+            if (current.length > 0 && activeState.key === "collection") {
+                renderActiveVariation();
+            }
+        }
+
+        // =========================================================================
+        // Parser Inteligente de Telefones (Excel, Vírgulas, Espaços, Auto +55)
+        // =========================================================================
+        function parsePhoneEntries(rawText, autoDdi) {
+            if (!rawText || !rawText.trim()) return [];
+
+            // Primeiro divide por quebras de linha, vírgula ou ponto e vírgula
+            var primaryChunks = rawText.split(/[\n,;]+/);
+            var tokens = [];
+
+            primaryChunks.forEach(function(chunk) {
+                var trimmed = chunk.trim();
+                if (!trimmed) return;
+                // Separa múltiplos telefones na mesma linha mesmo com parênteses/DDI ou espaços
+                var totalDigits = trimmed.replace(/\D/g, "").length;
+                if (totalDigits >= 20 && /\s/.test(trimmed)) {
+                    var words = trimmed.split(/\s+/);
+                    var acc = "";
+                    words.forEach(function(w) {
+                        var candidate = acc ? acc + " " + w : w;
+                        var candDigits = candidate.replace(/\D/g, "").length;
+                        var accDigits = acc.replace(/\D/g, "").length;
+                        if (accDigits >= 10 && candDigits > 13) {
+                            tokens.push(acc);
+                            acc = w;
+                        } else {
+                            acc = candidate;
+                        }
+                    });
+                    if (acc) tokens.push(acc);
+                    return;
+                }
+                tokens.push(trimmed);
+            });
+
+            var seen = {};
+            var results = [];
+
+            tokens.forEach(function(rawToken) {
+                var digits = rawToken.replace(/\D/g, "");
+                if (!digits) return;
+
+                // Remove zero inicial de operadora (ex: 037999998888 -> 37999998888)
+                if ((digits.length === 11 || digits.length === 12) && digits.charAt(0) === "0") {
+                    digits = digits.slice(1);
+                }
+
+                // Adiciona DDI 55 automaticamente se tiver 10 ou 11 dígitos (DDD + fixo/celular)
+                if (autoDdi && (digits.length === 10 || digits.length === 11)) {
+                    digits = "55" + digits;
+                }
+
+                var isValid = digits.length >= 12 && digits.length <= 15;
+                if (!autoDdi && digits.length >= 10 && digits.length <= 15) {
+                    isValid = true;
+                }
+
+                if (!seen[digits]) {
+                    seen[digits] = true;
+                    results.push({
+                        raw: rawToken,
+                        digits: digits,
+                        formatted: formatDisplayPhone(digits),
+                        valid: isValid
+                    });
+                }
+            });
+
+            return results;
+        }
+
+        function formatDisplayPhone(digits) {
+            if (digits.length === 13 && digits.slice(0, 2) === "55") {
+                return "+55 (" + digits.slice(2, 4) + ") " + digits.slice(4, 9) + "-" + digits.slice(9);
+            }
+            if (digits.length === 12 && digits.slice(0, 2) === "55") {
+                return "+55 (" + digits.slice(2, 4) + ") " + digits.slice(4, 8) + "-" + digits.slice(8);
+            }
+            if (digits.length === 11) {
+                return "(" + digits.slice(0, 2) + ") " + digits.slice(2, 7) + "-" + digits.slice(7);
+            }
+            if (digits.length === 10) {
+                return "(" + digits.slice(0, 2) + ") " + digits.slice(2, 6) + "-" + digits.slice(6);
+            }
+            return "+" + digits;
+        }
+
+        function handlePhonesInput() {
+            var raw = document.getElementById("phones").value;
+            var autoDdi = document.getElementById("autoDdi").checked;
+            var parsed = parsePhoneEntries(raw, autoDdi);
+
+            clearFieldError("phonesError", "phones");
+
+            var chipsContainer = document.getElementById("phoneChips");
+            var statsEl = document.getElementById("phoneStats");
+            var clearBtn = document.getElementById("clearPhonesBtn");
+
+            chipsContainer.innerHTML = "";
+
+            if (parsed.length === 0) {
+                statsEl.textContent = "Nenhum número informado ainda.";
+                clearBtn.classList.add("hidden");
+                return;
+            }
+
+            clearBtn.classList.remove("hidden");
+            var validCount = parsed.filter(function(p) { return p.valid; }).length;
+            var invalidCount = parsed.length - validCount;
+
+            statsEl.textContent = validCount + " número(s) válido(s)" + (invalidCount > 0 ? " • " + invalidCount + " incompleto(s)" : " pronto(s) para envio");
+
+            parsed.forEach(function(item) {
+                var chip = document.createElement("span");
+                chip.className = item.valid
+                    ? "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-[#005CA9] border border-blue-200"
+                    : "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200";
+
+                var textSpan = document.createElement("span");
+                textSpan.textContent = item.valid ? item.formatted : item.raw + " (verificar)";
+
+                var removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "hover:opacity-75 font-bold ml-0.5";
+                removeBtn.textContent = "×";
+                removeBtn.title = "Remover número";
+                removeBtn.onclick = function() {
+                    removeSinglePhone(item.digits);
+                };
+
+                chip.appendChild(textSpan);
+                chip.appendChild(removeBtn);
+                chipsContainer.appendChild(chip);
+            });
+        }
+
+        function removeSinglePhone(digitsToRemove) {
+            var raw = document.getElementById("phones").value;
+            var autoDdi = document.getElementById("autoDdi").checked;
+            var remaining = parsePhoneEntries(raw, autoDdi).filter(function(p) {
+                return p.digits !== digitsToRemove;
+            });
+            document.getElementById("phones").value = remaining.map(function(p) { return p.digits; }).join(", ");
+            handlePhonesInput();
+        }
+
+        function clearPhones() {
+            document.getElementById("phones").value = "";
+            handlePhonesInput();
+            closeQueue();
+        }
+
+        // =========================================================================
+        // Editor de Mensagem, Formatação WhatsApp e Pré-visualização Realista
+        // =========================================================================
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function formatWhatsAppHtml(raw) {
+            if (!raw || !raw.trim()) {
+                return '<span class="text-slate-400 italic">Sua mensagem aparecerá formatada aqui...</span>';
+            }
+            var html = escapeHtml(raw);
+            // Monoespaçado `texto`
+            html = html.replace(/`([^`\n]+)`/g, '<code class="bg-black/5 px-1 rounded font-mono text-xs">$1</code>');
+            // Negrito *texto*
+            html = html.replace(/\*([^*\n]+)\*/g, '<strong class="font-bold">$1</strong>');
+            // Itálico _texto_
+            html = html.replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,!?])/g, '$1<em class="italic">$2</em>');
+            // Tachado ~texto~
+            html = html.replace(/~([^~\n]+)~/g, '<del class="line-through">$1</del>');
+            return html;
+        }
+
+        function updateMessagePreviewAndStats() {
+            var val = document.getElementById("message").value;
+            var lines = val ? val.split("\n").length : 0;
+            document.getElementById("charCounter").textContent = val.length + " caracteres • " + lines + " linha(s)";
+            document.getElementById("waPreviewText").innerHTML = formatWhatsAppHtml(val);
+
+            var now = new Date();
+            document.getElementById("waPreviewTime").textContent =
+                String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+        }
+
+        function handleMessageInput() {
+            clearFieldError("messageError", "message");
+            updateMessagePreviewAndStats();
+        }
+
+        function wrapSelection(prefix, suffix) {
+            var textarea = document.getElementById("message");
+            var start = textarea.selectionStart;
+            var end = textarea.selectionEnd;
+            var text = textarea.value;
+            var selected = text.substring(start, end) || "texto";
+            var replacement = prefix + selected + suffix;
+            textarea.value = text.substring(0, start) + replacement + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + prefix.length, start + prefix.length + selected.length);
+            updateMessagePreviewAndStats();
+        }
+
+        function appendManagerSignature() {
+            var textarea = document.getElementById("message");
+            var sig = buildManagerSignature();
+            var current = textarea.value.trim();
+            textarea.value = current ? current + "\n\nAtenciosamente,\n\n" + sig : sig;
+            updateMessagePreviewAndStats();
+            showToast("Assinatura adicionada ao final da mensagem.", "success");
+        }
+
+        function copyMessageText() {
+            var text = document.getElementById("message").value.trim();
+            if (!text) {
+                showToast("Não há mensagem para copiar.", "error");
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(function() {
+                    showToast("Mensagem copiada para a área de transferência!", "success");
+                }).catch(function() {
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            var textarea = document.getElementById("message");
+            textarea.select();
+            try {
+                document.execCommand("copy");
+                showToast("Mensagem copiada para a área de transferência!", "success");
+            } catch (e) {
+                showToast("Selecione o texto manualmente para copiar.", "info");
+            }
+        }
+
+        function clearMessageText() {
+            document.getElementById("message").value = "";
+            activeState = { key: null, label: "Texto Livre", variations: [], index: 0, rawBaseTemplate: "" };
+            highlightActiveCampaignButton("");
+            document.getElementById("activeCampaignTitle").textContent = "Texto Livre";
+            document.getElementById("variationCounter").textContent = "—";
+            updateMessagePreviewAndStats();
+        }
+
+        // =========================================================================
+        // Filtro de Categorias e Busca de Campanhas
+        // =========================================================================
+        function selectCategoryTab(cat) {
+            currentCategoryFilter = cat;
+            var tabs = document.querySelectorAll("#categoryTabs button[data-cat-tab]");
+            tabs.forEach(function(btn) {
+                if (btn.getAttribute("data-cat-tab") === cat) {
+                    btn.className = "px-3 py-1 rounded-full text-xs font-semibold bg-[#005CA9] text-white transition";
+                } else {
+                    btn.className = "px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+                }
+            });
+            filterCampaigns();
+        }
+
+        function filterCampaigns() {
+            var query = document.getElementById("templateSearch").value.trim().toLowerCase();
+            var allBtns = document.querySelectorAll("#campaignGrid .campaign-btn, #customTemplatesGroup .campaign-btn");
+
+            allBtns.forEach(function(btn) {
+                var cat = btn.getAttribute("data-category") || "all";
+                var text = btn.textContent.toLowerCase();
+                var matchCat = currentCategoryFilter === "all" || cat === currentCategoryFilter;
+                var matchSearch = !query || text.indexOf(query) !== -1;
+                if (matchCat && matchSearch) {
+                    btn.classList.remove("hidden");
+                } else {
+                    btn.classList.add("hidden");
+                }
+            });
+        }
+
+        // =========================================================================
+        // Envio via WhatsApp & Fila Anti-Bloqueio de Pop-up
+        // =========================================================================
+        function buildWhatsAppUrl(phoneDigits, message) {
+            var channel = document.getElementById("waChannel").value;
+            var encoded = encodeURIComponent(message);
+            if (channel === "web") {
+                return "https://web.whatsapp.com/send?phone=" + phoneDigits + "&text=" + encoded;
+            }
+            return "https://wa.me/" + phoneDigits + "?text=" + encoded;
+        }
+
+        function incrementSentCounter() {
+            sessionSentTotal += 1;
+            document.getElementById("sessionSentCount").textContent = String(sessionSentTotal);
+            safeSetStorage("cef_sent_today_" + new Date().toISOString().slice(0, 10), sessionSentTotal);
+        }
+
+        function sendMessage() {
+            var rawPhones = document.getElementById("phones").value;
+            var autoDdi = document.getElementById("autoDdi").checked;
+            var parsed = parsePhoneEntries(rawPhones, autoDdi);
+            var validPhones = parsed.filter(function(p) { return p.valid; });
+            var message = document.getElementById("message").value.trim();
+
+            if (validPhones.length === 0) {
+                showFieldError("phonesError", "phones", "Insira pelo menos um número de telefone válido com DDD.");
+                return;
+            }
+            if (!message) {
+                showFieldError("messageError", "message", "Selecione um modelo ou escreva uma mensagem antes de enviar.");
+                return;
+            }
+
+            // Envio direto imediato para 1 único destinatário
+            if (validPhones.length === 1) {
+                var url = buildWhatsAppUrl(validPhones[0].digits, message);
+                window.open(url, "_blank", "noopener,noreferrer");
+                incrementSentCounter();
+                showToast("Conversa aberta no WhatsApp para " + validPhones[0].formatted, "success");
+                return;
+            }
+
+            // Múltiplos destinatários: abre o 1º imediatamente no clique e monta a fila segura para os demais
+            dispatchQueue = validPhones.map(function(item, idx) {
+                return {
+                    digits: item.digits,
+                    formatted: item.formatted,
+                    sent: idx === 0
+                };
+            });
+
+            var firstUrl = buildWhatsAppUrl(dispatchQueue[0].digits, message);
+            window.open(firstUrl, "_blank", "noopener,noreferrer");
+            incrementSentCounter();
+
+            document.getElementById("queueSection").classList.remove("hidden");
+            renderDispatchQueue();
+            showToast("1º contato aberto! Clique em 'Disparar Próximo' para enviar aos demais sem bloqueio.", "success");
+        }
+
+        function renderDispatchQueue() {
+            var listEl = document.getElementById("queueList");
+            listEl.innerHTML = "";
+
+            var sentCount = dispatchQueue.filter(function(q) { return q.sent; }).length;
+            var total = dispatchQueue.length;
+            var pct = total > 0 ? Math.round((sentCount / total) * 100) : 0;
+
+            document.getElementById("queueProgressText").textContent = sentCount + " de " + total + " enviados";
+            document.getElementById("queueProgressBar").style.width = pct + "%";
+
+            var nextBtn = document.getElementById("queueNextBtn");
+            var nextPendingIndex = dispatchQueue.findIndex(function(q) { return !q.sent; });
+            if (nextPendingIndex === -1) {
+                nextBtn.textContent = "Todos os contatos foram disparados ✓";
+                nextBtn.disabled = true;
+                nextBtn.className = "flex-1 py-2.5 px-4 rounded-lg bg-emerald-600 text-white font-bold text-xs sm:text-sm opacity-90 cursor-default";
+            } else {
+                nextBtn.disabled = false;
+                nextBtn.textContent = "Disparar Próximo (" + (nextPendingIndex + 1) + " de " + total + "): " + dispatchQueue[nextPendingIndex].formatted + " ▶";
+                nextBtn.className = "flex-1 py-2.5 px-4 rounded-lg bg-[#F39200] hover:bg-[#D97706] text-white font-bold text-xs sm:text-sm shadow transition";
+            }
+
+            dispatchQueue.forEach(function(item, idx) {
+                var row = document.createElement("div");
+                row.className = "flex items-center justify-between gap-2 px-3 py-2 rounded-lg border text-xs " +
+                    (item.sent ? "bg-emerald-50/70 border-emerald-200 text-emerald-900" : "bg-slate-50 border-slate-200 text-slate-800");
+
+                var left = document.createElement("div");
+                left.className = "flex items-center gap-2 font-medium";
+                left.textContent = (idx + 1) + ". " + item.formatted;
+
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = item.sent
+                    ? "px-2.5 py-1 rounded bg-white border border-emerald-300 text-emerald-700 font-semibold hover:bg-emerald-100 transition"
+                    : "px-2.5 py-1 rounded bg-[#005CA9] text-white font-semibold hover:bg-[#004A87] transition";
+                btn.textContent = item.sent ? "Enviado ✓ (Reabrir)" : "Abrir WhatsApp";
+                btn.onclick = (function(index) {
+                    return function() {
+                        triggerQueueItem(index);
+                    };
+                })(idx);
+
+                row.appendChild(left);
+                row.appendChild(btn);
+                listEl.appendChild(row);
+            });
+        }
+
+        function triggerQueueItem(index) {
+            var item = dispatchQueue[index];
+            var message = document.getElementById("message").value.trim();
+            if (!item || !message) return;
+            var url = buildWhatsAppUrl(item.digits, message);
+            window.open(url, "_blank", "noopener,noreferrer");
+            if (!item.sent) {
+                item.sent = true;
+                incrementSentCounter();
+            }
+            renderDispatchQueue();
+        }
+
+        function sendNextInQueue() {
+            var nextIdx = dispatchQueue.findIndex(function(q) { return !q.sent; });
+            if (nextIdx !== -1) {
+                triggerQueueItem(nextIdx);
+            }
+        }
+
+        function closeQueue() {
+            document.getElementById("queueSection").classList.add("hidden");
+        }
+
+        // =========================================================================
+        // Modal: Configurações da Agência e Assinatura
+        // =========================================================================
+        function openSettingsModal() {
+            document.getElementById("cfgAgencyName").value = agencyConfig.agencyName;
+            document.getElementById("cfgGeneralPhone").value = agencyConfig.generalPhone;
+            document.getElementById("cfgGeneralEmail").value = agencyConfig.generalEmail;
+            document.getElementById("cfgPjPhone").value = agencyConfig.pjPhone;
+            document.getElementById("cfgPjEmail").value = agencyConfig.pjEmail;
+            document.getElementById("cfgManagerName").value = agencyConfig.managerName;
+            document.getElementById("cfgManagerRole").value = agencyConfig.managerRole;
+            document.getElementById("cfgManagerCerts").value = agencyConfig.managerCerts;
+            document.getElementById("cfgManagerEmail").value = agencyConfig.managerEmail;
+            document.getElementById("cfgManagerCell").value = agencyConfig.managerCell;
+
+            var modal = document.getElementById("settingsModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeSettingsModal() {
+            var modal = document.getElementById("settingsModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function saveSettingsModal() {
+            agencyConfig = {
+                agencyName: document.getElementById("cfgAgencyName").value.trim() || DEFAULT_AGENCY_CONFIG.agencyName,
+                generalPhone: document.getElementById("cfgGeneralPhone").value.trim() || DEFAULT_AGENCY_CONFIG.generalPhone,
+                generalEmail: document.getElementById("cfgGeneralEmail").value.trim() || DEFAULT_AGENCY_CONFIG.generalEmail,
+                pjPhone: document.getElementById("cfgPjPhone").value.trim() || DEFAULT_AGENCY_CONFIG.pjPhone,
+                pjEmail: document.getElementById("cfgPjEmail").value.trim() || DEFAULT_AGENCY_CONFIG.pjEmail,
+                managerName: document.getElementById("cfgManagerName").value.trim() || DEFAULT_AGENCY_CONFIG.managerName,
+                managerRole: document.getElementById("cfgManagerRole").value.trim() || DEFAULT_AGENCY_CONFIG.managerRole,
+                managerCerts: document.getElementById("cfgManagerCerts").value.trim() || DEFAULT_AGENCY_CONFIG.managerCerts,
+                managerEmail: document.getElementById("cfgManagerEmail").value.trim() || DEFAULT_AGENCY_CONFIG.managerEmail,
+                managerCell: document.getElementById("cfgManagerCell").value.trim() || DEFAULT_AGENCY_CONFIG.managerCell
+            };
+            safeSetStorage("cef_agency_config_v2", agencyConfig);
+            document.getElementById("agencyHeaderBadge").textContent = agencyConfig.agencyName;
+            refreshCurrentMessagePersonalization();
+            closeSettingsModal();
+            showToast("Dados da agência e assinatura atualizados!", "success");
+        }
+
+        function resetDefaultSettings() {
+            agencyConfig = Object.assign({}, DEFAULT_AGENCY_CONFIG);
+            safeSetStorage("cef_agency_config_v2", agencyConfig);
+            openSettingsModal();
+            document.getElementById("agencyHeaderBadge").textContent = agencyConfig.agencyName;
+            refreshCurrentMessagePersonalization();
+            showToast("Padrão da Agência Arcos 1696 restaurado.", "info");
+        }
+
+        // =========================================================================
+        // Modal: Modelos Personalizados
+        // =========================================================================
+        function openCustomModal() {
+            renderSavedCustomList();
+            var modal = document.getElementById("customModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function closeCustomModal() {
+            var modal = document.getElementById("customModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function saveCustomTemplate() {
+            var title = document.getElementById("customTitleInput").value.trim();
+            var category = document.getElementById("customCategorySelect").value;
+            var body = document.getElementById("customBodyInput").value.trim();
+
+            if (!title || !body) {
+                showFieldError("customModalError", "customTitleInput", "Informe o nome do botão e o texto da mensagem.");
+                return;
+            }
+            clearFieldError("customModalError", "customTitleInput");
+
+            var newItem = {
+                id: "custom_" + Date.now(),
+                title: title,
+                category: category,
+                body: body
+            };
+            customTemplates.push(newItem);
+            safeSetStorage("cef_custom_templates_v2", customTemplates);
+
+            document.getElementById("customTitleInput").value = "";
+            document.getElementById("customBodyInput").value = "";
+            renderCustomTemplateButtons();
+            renderSavedCustomList();
+            showToast("Modelo '" + title + "' salvo com sucesso!", "success");
+        }
+
+        function deleteCustomTemplate(id) {
+            customTemplates = customTemplates.filter(function(item) { return item.id !== id; });
+            safeSetStorage("cef_custom_templates_v2", customTemplates);
+            renderCustomTemplateButtons();
+            renderSavedCustomList();
+            showToast("Modelo removido.", "info");
+        }
+
+        function renderCustomTemplateButtons() {
+            var container = document.getElementById("customTemplatesGroup");
+            container.innerHTML = "";
+            customTemplates.forEach(function(item) {
+                var btn = document.createElement("button");
+                btn.type = "button";
+                btn.setAttribute("data-campaign", item.id);
+                btn.setAttribute("data-category", item.category);
+                btn.setAttribute("data-badge", "Meu Modelo");
+                btn.className = "campaign-btn flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50/50 hover:bg-amber-50 hover:border-[#F39200] text-slate-800 text-xs sm:text-sm font-semibold transition shadow-sm";
+
+                var span = document.createElement("span");
+                span.textContent = item.title;
+                btn.appendChild(span);
+
+                btn.onclick = function() {
+                    activateCampaign(item.id, item.title, [item.body]);
+                };
+                container.appendChild(btn);
+            });
+            filterCampaigns();
+        }
+
+        function renderSavedCustomList() {
+            var list = document.getElementById("savedCustomList");
+            list.innerHTML = "";
+            if (customTemplates.length === 0) {
+                var empty = document.createElement("p");
+                empty.className = "text-slate-400 italic";
+                empty.textContent = "Nenhum modelo personalizado criado ainda.";
+                list.appendChild(empty);
+                return;
+            }
+            customTemplates.forEach(function(item) {
+                var row = document.createElement("div");
+                row.className = "flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200";
+                var titleEl = document.createElement("span");
+                titleEl.className = "font-semibold text-slate-700 truncate";
+                titleEl.textContent = item.title;
+
+                var delBtn = document.createElement("button");
+                delBtn.type = "button";
+                delBtn.className = "text-red-600 hover:underline font-semibold shrink-0";
+                delBtn.textContent = "Excluir";
+                delBtn.onclick = function() { deleteCustomTemplate(item.id); };
+
+                row.appendChild(titleEl);
+                row.appendChild(delBtn);
+                list.appendChild(row);
+            });
+        }
+
+        // =========================================================================
+        // Inicialização
+        // =========================================================================
+        window.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("agencyHeaderBadge").textContent = agencyConfig.agencyName;
+            document.getElementById("sessionSentCount").textContent = String(sessionSentTotal);
+            initQuickMonthsButtons();
+            renderCustomTemplateButtons();
+            // Abre já com uma prévia pronta de Crédito Consignado para demonstrar a interface viva
+            activateCampaign("consignado", "Crédito Consignado / Renovação", creditoConsignadoMessages);
+        });
+    </script>
+</body>
+</html>
