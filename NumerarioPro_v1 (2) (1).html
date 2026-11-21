@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f7fb">
+  <meta name="description" content="Conferência de numerário, fechamento de caixa e relatório de cédulas e moedas.">
+  <title>Numerário Pro — Conferência de Caixa</title>
+  <style>
+    :root {
+      --bg: #f3f6fb; --surface: #fff; --surface-soft: #f8faff; --surface-hover: #eef3fb;
+      --text: #111f35; --muted: #68788e; --line: #e4eaf2; --line-strong: #d4dfea;
+      --primary: #315aee; --primary-hover: #2447d2; --primary-contrast: #fff;
+      --primary-soft: #edf1ff; --teal: #00a58a; --teal-soft: #e8f8f2;
+      --red: #d7495f; --red-soft: #fff0f2; --amber: #a87413; --amber-soft: #fff6e4;
+      --shadow: 0 13px 40px rgba(24,42,76,.052), 0 1px 3px rgba(24,42,76,.04);
+      --sidebar: #111e34; --sidebar-muted: #a4b1c8; --ring: rgba(49,90,238,.20);
+    }
+    html[data-theme="dark"] {
+      --bg: #0b1220; --surface: #141f32; --surface-soft: #19263a; --surface-hover: #213249;
+      --text: #edf3fb; --muted: #9bacbe; --line: #28384c; --line-strong: #384b63;
+      --primary: #7b9cff; --primary-hover: #9cb2ff; --primary-contrast: #0e1d39;
+      --primary-soft: #273b65; --teal: #49d9bc; --teal-soft: #173e3b;
+      --red: #ff8290; --red-soft: #4b2636; --amber: #f7c672; --amber-soft: #453b29;
+      --shadow: 0 15px 44px rgba(0,0,0,.16), 0 1px 5px rgba(0,0,0,.12);
+      --sidebar: #0b1526; --sidebar-muted: #9badc3; --ring: rgba(123,156,255,.22);
+    }
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;min-width:320px;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.46;font-size:14px;-webkit-font-smoothing:antialiased}
+    button,input,textarea{font:inherit}
+    button{cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--ring);outline-offset:2px}
+    a{color:inherit;text-decoration:none}
+    .app{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+    .sidebar{background:var(--sidebar);color:#f6faff;padding:31px 19px 24px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;min-height:690px;z-index:10;overflow:auto}
+    .brand{display:flex;align-items:center;gap:12px;padding:1px 9px 30px}
+    .brand-mark{width:41px;height:41px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#78acff,#4664fb 64%,#3448c9);font-size:21px;font-weight:850;color:#fff;box-shadow:0 9px 22px rgba(69,89,238,.28)}
+    .brand-name{font-size:17px;font-weight:800;letter-spacing:-.6px;line-height:1.2}
+    .brand-name small{display:block;letter-spacing:1.5px;font-size:9px;font-weight:700;color:#96aad0;margin-top:5px}
+    .nav-label{font-size:10px;letter-spacing:1.7px;color:#7b91b0;font-weight:800;padding:0 13px;margin:11px 0 12px}
+    .nav{display:flex;flex-direction:column;gap:6px}
+    .nav a{position:relative;display:flex;align-items:center;gap:11px;color:#b8c7da;padding:13px 14px;border-radius:11px;font-weight:600;transition:background .2s,color .2s,transform .2s}
+    .nav a:hover,.nav a.active{background:rgba(120,154,250,.15);color:#fff;transform:translateX(2px)}
+    .nav a.active:before{content:"";width:3px;height:23px;background:#80a6ff;position:absolute;left:0;border-radius:0 3px 3px 0}
+    .nav .ico{font-size:17px;display:inline-grid;place-items:center;width:21px}
+    .sidebar-foot{margin-top:auto;padding:19px 12px 0;color:var(--sidebar-muted);font-size:11px;line-height:1.65;border-top:1px solid rgba(255,255,255,.1)}
+    .secure{display:flex;align-items:center;gap:8px;color:#bee8d5;font-weight:700;font-size:12px;margin-bottom:7px}
+    .secure-dot{height:7px;width:7px;border-radius:50%;background:#4ee5ae;box-shadow:0 0 0 4px rgba(78,229,174,.09)}
+    .main{min-width:0;padding:0 clamp(17px,3.1vw,47px) 45px;max-width:1650px;width:100%;margin:0 auto}
+    .topbar{height:57px;display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line)}
+    .breadcrumbs{color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.2px}.breadcrumbs strong{color:var(--text)}
+    .top-actions{display:flex;gap:8px;align-items:center}
+    .icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);height:37px;padding:0 13px;border-radius:11px;display:inline-flex;align-items:center;gap:8px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.02);transition:.2s}
+    .icon-btn:hover{background:var(--surface-hover);border-color:var(--line-strong);transform:translateY(-1px)}
+    .header{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:20px 0 16px}
+    .eyebrow{display:flex;align-items:center;gap:8px;text-transform:uppercase;font-size:11px;letter-spacing:1.5px;font-weight:800;color:var(--primary);margin:0 0 5px}
+    h1,h2,h3,p{margin-top:0}
+    h1{font-size:clamp(25px,2.6vw,34px);font-weight:850;letter-spacing:-1.25px;line-height:1.2;margin:0 0 8px}
+    .subtitle{color:var(--muted);font-size:13px;margin:0;max-width:690px}
+    .header-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);font-weight:750;padding:11px 15px;border-radius:11px;min-height:42px;transition:transform .18s,box-shadow .18s,background .18s,border .18s;white-space:nowrap}
+    .btn:hover{transform:translateY(-2px);box-shadow:0 7px 15px rgba(27,53,99,.07);background:var(--surface-hover)}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{background:linear-gradient(135deg,#476ef5,#3157dc);color:#fff;border-color:#3357dc;box-shadow:0 7px 19px rgba(43,88,229,.18)}
+    .btn.primary:hover{background:linear-gradient(135deg,#547bff,#3a62e8);box-shadow:0 10px 24px rgba(43,88,229,.27)}
+    .btn.quiet{background:transparent;border-color:transparent;color:var(--muted)}.btn.quiet:hover{background:var(--surface-hover);color:var(--text)}
+    .btn.success{background:var(--teal-soft);color:var(--teal);border-color:transparent}
+    .btn.danger{color:var(--red);border-color:transparent;background:var(--red-soft)}
+    .btn.small{padding:8px 11px;min-height:34px;font-size:12px}
+    .metrics{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.07fr;gap:11px;margin-bottom:14px}
+    .metric{position:relative;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);padding:14px 17px;min-height:108px;display:flex;flex-direction:column;justify-content:space-between;transition:transform .2s,border-color .2s}
+    .metric:hover{transform:translateY(-2px);border-color:var(--line-strong)}
+    .metric.hero{background:linear-gradient(122deg,#203c84,#3158e1 87%);color:white;border:none}
+    .metric.hero::after{content:"";position:absolute;right:-60px;top:-113px;width:260px;height:260px;border:48px solid rgba(255,255,255,.07);border-radius:50%;pointer-events:none}
+    .metric.hero::before{content:"";position:absolute;right:40px;bottom:-95px;width:205px;height:205px;border-radius:50%;background:radial-gradient(circle,rgba(77,217,208,.23),transparent 72%);pointer-events:none}
+    .metric-label{font-weight:650;letter-spacing:.1px;font-size:12px;color:var(--muted)}
+    .hero .metric-label{color:#ccddff}
+    .metric-value{font-weight:850;font-size:clamp(20px,2.05vw,30px);letter-spacing:-1px;line-height:1.1;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+    .hero .metric-value{font-size:clamp(26px,2.55vw,37px);position:relative;z-index:1}
+    .metric-note{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;min-height:17px}
+    .hero .metric-note{color:#d3e4ff}
+    .metric-icon{position:absolute;right:21px;top:18px;width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--primary-soft);color:var(--primary);font-size:17px}
+    .hero .metric-icon{background:rgba(255,255,255,.14);color:#fff}
+    .work-grid{display:grid;grid-template-columns:minmax(0,1.47fr) minmax(320px,.9fr);gap:20px;align-items:start}
+    .panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+    .panel-head{padding:17px 20px 13px;display:flex;align-items:center;justify-content:space-between;gap:15px}
+    .panel-head h2{font-size:16px;font-weight:800;letter-spacing:-.35px;margin:0 0 5px;display:flex;align-items:center;gap:10px}
+    .panel-head p{font-size:12px;color:var(--muted);margin:0}
+    .panel-body{padding:0 23px 22px}
+    .filter-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:0 20px 12px}
+    .damaged-callout{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 20px 14px;padding:11px 13px;background:var(--amber-soft);border:2px solid var(--amber);border-radius:13px}
+    .damaged-callout label{display:block;color:var(--text);font-size:14px;font-weight:850;letter-spacing:-.2px}
+    .damaged-callout .hint{display:block;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.3}
+    .damaged-callout input{width:132px;min-width:110px;padding:11px 10px;text-align:right;background:var(--surface);border:2px solid var(--amber);border-radius:10px;color:var(--text);font-weight:850;font-size:19px;font-variant-numeric:tabular-nums;outline:none}
+    .damaged-callout input:focus{box-shadow:0 0 0 3px var(--ring)}
+    .tab{border:1px solid transparent;border-radius:9px;background:transparent;color:var(--muted);padding:7px 13px;font-weight:750;font-size:12px;transition:.18s}
+    .tab[aria-pressed=true]{color:var(--primary);background:var(--primary-soft)}
+    .tab:hover{background:var(--surface-hover)}
+    .kbd-hint{margin-left:auto;font-size:11px;color:var(--muted)}
+    .table-wrap{overflow-x:auto}
+    .count-table{border-collapse:collapse;width:100%;table-layout:fixed;text-align:left}
+    .count-table th{background:var(--surface-soft);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:800;padding:12px 22px}
+    .count-table th:first-child{width:36%}.count-table th:nth-child(2){width:35%;text-align:center}.count-table th:last-child{text-align:right;width:29%}
+    .count-table td{border-bottom:1px solid var(--line);padding:9px 22px;font-variant-numeric:tabular-nums}
+    .count-table tr:last-child td{border-bottom:0}
+    .count-table tbody tr{transition:background .16s}
+    .count-table tbody tr:hover{background:var(--surface-soft)}
+    .denom{display:flex;align-items:center;gap:12px;min-width:110px}
+    .money-icon{width:38px;height:34px;border-radius:9px;background:var(--teal-soft);color:var(--teal);font-size:12px;font-weight:900;display:grid;place-items:center;flex-shrink:0;border:1px solid rgba(0,165,138,.08)}
+    .money-icon.coin{border-radius:50%;background:var(--amber-soft);color:var(--amber);width:33px;height:33px;border:1px solid rgba(168,116,19,.13)}
+    .denom-label{font-weight:800;letter-spacing:-.2px}.denom-kind{font-size:10px;color:var(--muted);display:block;font-weight:550;margin-top:1px}
+    .stepper{display:flex;align-items:center;justify-content:center;gap:4px}
+    .step{width:31px;height:32px;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);color:var(--muted);background:var(--surface-soft);font-size:17px;font-weight:550;transition:.15s}
+    .step:hover{background:var(--primary-soft);color:var(--primary);border-color:var(--ring)}
+    .qty{height:35px;min-width:55px;width:min(70px,100%);border-radius:8px;background:var(--surface);border:1px solid var(--line-strong);color:var(--text);text-align:center;font-weight:850;font-size:14px;font-variant-numeric:tabular-nums;outline:none;appearance:textfield;-moz-appearance:textfield}
+    .qty::-webkit-inner-spin-button,.qty::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+    .qty:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+    .subtotal{text-align:right;font-weight:800;color:var(--text);white-space:nowrap}
+    .subtotal.zero{color:var(--muted);font-weight:550}
+    .count-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 23px;background:var(--surface-soft);border-top:1px solid var(--line);flex-wrap:wrap}
+    .count-footer .helper{font-size:11px;color:var(--muted)}
+    .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+    .field{display:flex;flex-direction:column;gap:6px;min-width:0}.field.span2{grid-column:span 2}
+    .field label{font-size:11px;font-weight:800;color:var(--muted)}
+    .field input,.field textarea,.field select{color:var(--text);background:var(--surface-soft);border:1px solid var(--line);border-radius:10px;padding:11px 12px;outline:none;min-width:0;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
+    .field input::placeholder,.field textarea::placeholder{color:var(--muted);opacity:.66}
+    .field textarea{min-height:70px;resize:vertical}
+    .field input:focus,.field textarea:focus,.field select:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring);background:var(--surface)}
+    .field input[readonly]{opacity:.85;background:var(--primary-soft);border-color:var(--ring)}
+    .movement-section{margin-top:12px;padding-top:13px;border-top:1px solid var(--line)}
+    .movement-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+    .movement-item:last-child{border-bottom:0}
+    .movement-item strong{font-size:12px}.movement-item small{display:block;font-size:10px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+    .movement-amount{font-weight:800;white-space:nowrap}.movement-amount.negative{color:var(--red)}.movement-amount.positive{color:var(--teal)}
+    .movement-delete{border:0;background:var(--red-soft);color:var(--red);min-width:34px;height:34px;border-radius:9px;font-size:15px;cursor:pointer}
+    .movement-empty{font-size:11px;color:var(--muted);padding:13px 0}
+    .movement-balance{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--teal-soft);border-radius:11px;padding:12px;margin-top:12px}
+    .movement-balance span{font-size:11px;font-weight:700;color:var(--muted)}.movement-balance strong{font-size:19px;font-weight:850;color:var(--teal)}
+    .field .hint{font-size:10px;color:var(--muted)}
+    .line-break{height:1px;background:var(--line);margin:18px 0}
+    .reconcile{margin-top:15px;border-radius:13px;background:var(--surface-soft);border:1px solid var(--line);padding:17px}
+    .reconcile .label-line{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--muted);font-size:12px;font-weight:700;margin-bottom:7px}
+    .difference{font-size:29px;letter-spacing:-1px;font-weight:850;font-variant-numeric:tabular-nums}
+    .status{border-radius:999px;background:var(--primary-soft);color:var(--primary);padding:6px 9px;font-size:10px;font-weight:850;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+    .status.ok{background:var(--teal-soft);color:var(--teal)}
+    .status.bad{background:var(--red-soft);color:var(--red)}
+    .status.warn{background:var(--amber-soft);color:var(--amber)}
+    .diff-note{font-size:11px;margin:7px 0 0;color:var(--muted)}
+    .check-button{width:100%;margin-top:13px}
+    .share-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 6px}
+    .share-buttons .btn{padding:10px 8px;font-size:12px}
+    .option-row{display:flex;align-items:flex-start;gap:10px;font-size:12px;color:var(--muted);line-height:1.4;margin-top:14px;cursor:pointer}
+    .option-row input{accent-color:var(--primary);height:16px;width:16px;margin:1px 0 0;flex-shrink:0}
+    .tip{border:1px solid var(--line);background:var(--surface-soft);color:var(--muted);padding:13px 14px;border-radius:11px;font-size:11px;margin-top:13px;line-height:1.55}
+    .tip strong{color:var(--text)}
+    .mini-note{color:var(--muted);font-size:11px;line-height:1.6;padding:7px 2px 0}
+    .bottom-note{padding:2px 2px 0;font-size:11px;color:var(--muted);text-align:center}
+    .toast{position:fixed;z-index:50;right:24px;bottom:23px;max-width:min(430px,calc(100vw - 36px));padding:14px 20px;border-radius:12px;background:#17243a;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.25);font-size:13px;font-weight:650;opacity:0;transform:translateY(14px);pointer-events:none;transition:.25s;line-height:1.4}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.error{background:#ab3047}
+    .confetti{position:fixed;inset:0;pointer-events:none;z-index:45;overflow:hidden}
+    .confetti i{position:absolute;top:-18px;width:9px;height:14px;opacity:0;animation:fall var(--dur) ease-in var(--delay) forwards;transform:rotate(var(--rot))}
+    @keyframes fall{0%{transform:translate3d(0,-5vh,0) rotate(0);opacity:1}90%{opacity:1}100%{transform:translate3d(var(--drift),105vh,0) rotate(var(--rot));opacity:0}}
+    .modal{border:1px solid var(--line);padding:0;border-radius:18px;background:var(--surface);color:var(--text);width:min(630px,calc(100vw - 28px));max-height:min(85vh,760px);box-shadow:0 25px 80px rgba(0,0,0,.25)}
+    .modal::backdrop{background:rgba(6,15,30,.65);backdrop-filter:blur(5px)}
+    .modal-head{display:flex;justify-content:space-between;align-items:center;padding:22px 24px;border-bottom:1px solid var(--line)}
+    .modal-head h2{font-size:19px;margin:0}.modal-body{padding:19px 24px;max-height:55vh;overflow:auto}
+    .modal-bottom{display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid var(--line);gap:10px}
+    .history-item{padding:15px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--surface-soft)}
+    .history-item-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .history-item strong{font-size:16px;font-variant-numeric:tabular-nums}.history-item small{display:block;color:var(--muted);margin-top:3px}
+    .history-actions{display:flex;gap:7px;margin-top:10px}.history-actions .btn{font-size:11px}
+    .empty-state{text-align:center;padding:45px 15px;color:var(--muted)}.empty-state .symbol{font-size:34px;display:block;margin-bottom:12px}
+    #printReport{display:none}
+    @media (min-width:1360px){.main{padding-left:46px;padding-right:46px}.metrics{gap:18px}.panel-head{padding-top:24px}}
+    @media (max-width:1170px){.app{grid-template-columns:205px minmax(0,1fr)}.sidebar{padding-left:13px;padding-right:13px}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.work-grid{grid-template-columns:minmax(0,1fr)}.main{max-width:1000px}}
+    @media (max-width:760px){.app{display:block}.sidebar{height:auto;min-height:0;padding:10px 15px;position:relative}.brand{padding:0}.brand-mark{height:35px;width:35px;font-size:17px;border-radius:10px}.brand-name{font-size:15px}.brand-name small{font-size:8px;margin-top:2px}.nav,.nav-label,.sidebar-foot{display:none}.main{padding:0 12px 22px}.topbar{height:45px}.top-actions .only-desktop{display:none}.header{display:block;margin:14px 0 12px}.header-actions{margin-top:11px;justify-content:flex-start}.header-actions .btn{flex:1}.metrics{gap:8px;margin-bottom:11px}.metric{padding:12px;min-height:100px;border-radius:13px}.metric-icon{right:9px;top:9px}.metric-value{font-size:21px}.hero .metric-value{font-size:25px}.metric-label{font-size:11px}.work-grid{gap:2px}.panel{border-radius:13px;margin-bottom:12px}.panel-head{padding:14px 13px 11px}.panel-body{padding:0 13px 15px}.filter-bar{padding:0 13px 10px}.damaged-callout{margin:0 13px 11px;padding:10px}.count-table th{padding:9px 11px}.count-table td{padding:8px 10px}.count-table th:first-child{width:37%}.count-table th:nth-child(2){width:38%}.count-table th:last-child{width:25%}.denom{gap:6px}.money-icon{width:32px;height:30px;font-size:10px}.money-icon.coin{width:29px;height:29px}.denom-label{font-size:12px}.denom-kind{font-size:9px}.step{width:28px;height:31px}.qty{width:46px;min-width:46px}.subtotal{font-size:12px}.count-footer{padding:11px 13px}.kbd-hint{display:none}}
+    @media (max-width:415px){.metric-value{font-size:19px}.hero .metric-value{font-size:23px}.metric{min-height:94px}.count-table th{font-size:9px}.denom-kind{display:none}.money-icon{width:28px;height:28px}.step{width:25px}.qty{width:42px;min-width:42px}.subtotal{font-size:11px}.field-grid{gap:10px}.header-actions .btn{font-size:12px;padding:9px}.damaged-callout label{font-size:13px}.damaged-callout .hint{font-size:10px}.damaged-callout input{width:112px;font-size:17px;padding:10px 7px}}
+    @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+    @media print{
+      @page{size:A4 portrait;margin:15mm}
+      :root,html[data-theme="dark"]{color-scheme:light!important}
+      body{background:white!important;color:#18253a!important;font-size:12px}
+      .app,.toast,.confetti,.modal{display:none!important}
+      #printReport{display:block!important;font-family:Arial,sans-serif;color:#18253a}
+      #printReport .pr-head{display:flex;justify-content:space-between;align-items:start;border-bottom:2px solid #253c69;padding-bottom:14px;margin-bottom:16px}
+      #printReport h1{font-size:23px;margin-bottom:4px;letter-spacing:0;color:#15253e}
+      #printReport .muted{color:#66758a}
+      #printReport .pr-stamp{font-size:10px;text-align:right}
+      #printReport .pr-data{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;margin:18px 0}
+      #printReport .pr-data div{padding:8px 0;border-bottom:1px solid #e0e4e9}
+      #printReport .pr-data span{display:block;color:#68758a;font-size:10px;text-transform:uppercase;letter-spacing:.4px}
+      #printReport .pr-data strong{font-size:12px;font-weight:700;overflow-wrap:anywhere}
+      #printReport table{border-collapse:collapse;width:100%;margin:16px 0}
+      #printReport th,#printReport td{text-align:left;padding:7px 9px;border-bottom:1px solid #dce3eb}
+      #printReport th{background:#eff3f8;font-size:10px;text-transform:uppercase;color:#4a5970}
+      #printReport td:last-child,#printReport th:last-child{text-align:right}
+      #printReport td:nth-child(2),#printReport th:nth-child(2){text-align:center}
+      #printReport .pr-total{display:flex;justify-content:space-between;align-items:center;background:#edf2fb;padding:13px 14px;margin:14px 0;font-size:18px;font-weight:800}
+      #printReport .pr-foot{margin-top:25px;font-size:10px;color:#65748a;border-top:1px solid #dce3eb;padding-top:11px}
+    }
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar" aria-label="Navegação">
+    <div class="brand"><span class="brand-mark">N<span style="color:#a3ffee">.</span></span><div class="brand-name">Numerário Pro<small>CONTAGEM &amp; CONFERÊNCIA</small></div></div>
+    <p class="nav-label">ÁREA DE TRABALHO</p>
+    <nav class="nav">
+      <a href="#painel" class="active"><span class="ico">▦</span>Visão geral</a>
+      <a href="#contagem"><span class="ico">▤</span>Contagem</a>
+      <a href="#conferencia"><span class="ico">◎</span>Conciliação</a>
+      <a href="#compartilhar"><span class="ico">⇪</span>Relatórios</a>
+      <a href="#" id="sideHistory"><span class="ico">◷</span>Histórico local</a>
+    </nav>
+    <div class="sidebar-foot"><div class="secure"><span class="secure-dot"></span> Funciona sem internet</div>Aplicação independente, sem envio automático de dados a servidores. Seus fechamentos ficam neste aparelho.<div style="margin-top:12px;opacity:.65">Versão Android 1.1 · Numerário Pro</div></div>
+  </aside>
+
+  <main class="main" id="painel">
+    <div class="topbar"><span class="breadcrumbs">Workspace &nbsp;/&nbsp; <strong>Conferência de caixa</strong></span><div class="top-actions"><button class="icon-btn" id="themeToggle" type="button" aria-label="Alternar tema"><span id="themeIcon">☾</span><span id="themeText">Escuro</span></button><button class="icon-btn only-desktop" id="topHistory" type="button">◷ &nbsp; Histórico</button></div></div>
+    <header class="header">
+      <div><p class="eyebrow">✦ &nbsp; Fechamento de caixa</p><h1>Contagem de numerário</h1></div>
+      <div class="header-actions"><button type="button" class="btn" id="clearQuantities">↺ &nbsp; Zerar contagem</button><button type="button" class="btn primary" id="newClosure">＋ &nbsp; Novo fechamento</button></div>
+    </header>
+
+    <section class="metrics" aria-label="Resumo financeiro">
+      <div class="metric hero"><span class="metric-icon">▣</span><span class="metric-label">Total apurado</span><strong class="metric-value" id="totalAmount">R$ 0,00</strong><span class="metric-note" id="totalNote">0 unidades contabilizadas</span></div>
+      <div class="metric"><span class="metric-icon">▤</span><span class="metric-label">Em cédulas</span><strong class="metric-value" id="notesAmount">R$ 0,00</strong><span class="metric-note" id="notesNote">0 cédulas</span></div>
+      <div class="metric"><span class="metric-icon">◉</span><span class="metric-label">Em moedas</span><strong class="metric-value" id="coinsAmount">R$ 0,00</strong><span class="metric-note" id="coinsNote">0 moedas</span></div>
+      <div class="metric"><span class="metric-icon">◎</span><span class="metric-label">Diferença do caixa</span><strong class="metric-value" id="diffAmount">—</strong><span class="metric-note" id="diffNote">Aguardando valor esperado</span></div>
+    </section>
+
+    <div class="work-grid">
+      <div>
+        <section class="panel" id="contagem">
+          <div class="panel-head"><div><h2>▤ &nbsp; Cédulas e moedas</h2></div><span class="status" id="activeTypes">0 tipos</span></div>
+          <div class="filter-bar" role="group" aria-label="Filtrar denominações"><button class="tab" type="button" data-filter="all" aria-pressed="true">Todas</button><button class="tab" type="button" data-filter="note" aria-pressed="false">Cédulas</button><button class="tab" type="button" data-filter="coin" aria-pressed="false">Moedas</button><span class="kbd-hint">↵ Próximo campo</span></div>
+          <div class="damaged-callout"><div><label for="dilacerados">✦ &nbsp; Cédulas dilaceradas</label><span class="hint">Valor adicional (R$) · não conte duas vezes</span></div><input id="dilacerados" class="persistable" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-label="Valor de cédulas dilaceradas em reais"></div>
+          <div class="table-wrap"><table class="count-table"><thead><tr><th scope="col">Denominação</th><th scope="col">Quantidade</th><th scope="col">Subtotal</th></tr></thead><tbody id="denomRows"></tbody></table></div>
+          <div class="count-footer"><span class="helper" id="countFooterText">Nenhuma unidade registrada.</span><button type="button" class="btn small quiet" id="clearQuantitiesBottom">↺ Limpar quantidades</button></div>
+        </section>
+      </div>
+      <div>
+        <section class="panel" id="dados"><div class="panel-head"><div><h2>▣ &nbsp; Dados do fechamento</h2><p>Identifique a conferência para o relatório.</p></div></div>
+          <div class="panel-body">
+            <div class="field-grid">
+              <div class="field span2"><label for="nome">Responsável / identificação</label><input id="nome" type="text" class="persistable" placeholder="Nome do responsável" autocomplete="off" maxlength="100"></div>
+              <div class="field"><label for="data">Data da conferência</label><input id="data" type="date" class="persistable"></div>
+              <div class="field"><label for="numeroATM">Identificação do caixa</label><input id="numeroATM" class="persistable" type="text" maxlength="30" placeholder="Ex.: caixa 02" autocomplete="off"></div>
+              <div class="field span2"><label for="turno">Turno</label><select id="turno" class="persistable"><option value="">Sem turno específico</option><option value="Manhã">Manhã</option><option value="Tarde">Tarde</option><option value="Noite">Noite</option><option value="Integral">Integral</option></select></div>
+              <div class="field span2"><label for="cpf">CPF (opcional)</label><input id="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off"><span class="hint">Não é armazenado no rascunho nem no histórico local.</span></div>
+              <div class="field span2"><label for="observacoes">Observações</label><textarea id="observacoes" class="persistable" placeholder="Informações complementares do fechamento" maxlength="800"></textarea></div>
+            </div>
+          </div>
+        </section>
+        <section class="panel" id="movimentacoes"><div class="panel-head"><div><h2>↕ &nbsp; Movimentações do turno</h2><p>Abertura, vendas, sangrias e suprimentos.</p></div></div>
+          <div class="panel-body">
+            <div class="field-grid">
+              <div class="field"><label for="openingBalance">Saldo inicial (R$)</label><input id="openingBalance" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+              <div class="field"><label for="cashSales">Vendas em dinheiro (R$)</label><input id="cashSales" type="text" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+            </div>
+            <div class="movement-section">
+              <div class="field-grid">
+                <div class="field"><label for="movType">Movimentação</label><select id="movType"><option value="sangria">Sangria (−)</option><option value="suprimento">Suprimento (+)</option><option value="saida">Outra saída (−)</option><option value="entrada">Outra entrada (+)</option></select></div>
+                <div class="field"><label for="movAmount">Valor (R$)</label><input id="movAmount" type="text" inputmode="decimal" placeholder="Ex.: 150,00" autocomplete="off"></div>
+                <div class="field"><label for="movNote">Descrição (opcional)</label><input id="movNote" type="text" maxlength="100" placeholder="Ex.: retirada do caixa" autocomplete="off"></div>
+                <div class="field"><label>&nbsp;</label><button class="btn primary" type="button" id="addMovement">+ Adicionar</button></div>
+              </div>
+              <div id="movementList" aria-live="polite"><p class="movement-empty">Nenhuma movimentação registrada.</p></div>
+              <div class="movement-balance"><span>Saldo esperado calculado</span><strong id="movementExpected">—</strong></div>
+              <label class="option-row"><input id="autoExpected" type="checkbox"><span><strong>Usar esse saldo no fechamento</strong><span style="display:block;margin-top:3px">Atualiza automaticamente o valor esperado.</span></span></label>
+            </div>
+          </div>
+        </section>
+        <section class="panel" id="conferencia"><div class="panel-head"><div><h2>◎ &nbsp; Conciliação de caixa</h2><p>Confronte o total físico com o montante esperado.</p></div></div>
+          <div class="panel-body">
+            <div class="field"><label for="expected">Valor esperado (R$)</label><input id="expected" type="text" class="persistable" inputmode="decimal" placeholder="Ex.: 5.000,00" autocomplete="off"><span class="hint">Deixe em branco caso queira apenas somar o numerário.</span></div>
+            <div class="reconcile"><div class="label-line"><span>Diferença apurada</span><span class="status" id="statusChip">Aguardando</span></div><div class="difference" id="differenceDetail">—</div><p class="diff-note" id="differenceMessage">Informe o valor esperado para verificar se o caixa fechou.</p></div>
+            <button class="btn primary check-button" type="button" id="validateClosure">✓ &nbsp; Validar fechamento</button>
+          </div>
+        </section>
+        <section class="panel" id="compartilhar">
+          <div class="panel-head"><div><h2>⇪ &nbsp; Exportar e compartilhar</h2><p>Relatório da contagem e das movimentações.</p></div></div>
+          <div class="panel-body">
+            <div class="field-grid"><div class="field"><label for="phoneNumber">WhatsApp (opcional)</label><input id="phoneNumber" inputmode="tel" autocomplete="off" placeholder="(31) 99999-9999" type="tel"></div><div class="field"><label for="email">E-mail (opcional)</label><input id="email" autocomplete="off" placeholder="destinatario@exemplo.com" type="email"></div></div>
+            <div class="share-buttons">
+              <button class="btn" id="copyReport" type="button">▣ &nbsp; Copiar resumo</button>
+              <button class="btn" id="exportCSV" type="button">⇩ &nbsp; Exportar CSV</button>
+              <button class="btn" id="printReportBtn" type="button">▤ &nbsp; Imprimir / PDF</button>
+              <button class="btn" id="sendWhatsApp" type="button">↗ &nbsp; WhatsApp</button>
+              <button class="btn" id="sendEmail" type="button">✉ &nbsp; E-mail</button>
+              <button class="btn" id="saveHistory" type="button">◷ &nbsp; Salvar no histórico</button>
+            </div>
+            <label class="option-row"><input type="checkbox" id="shareFullCPF"><span>Incluir CPF completo nas exportações e mensagens. <strong>Desmarcado por segurança.</strong></span></label>
+            <div class="tip"><strong>Privacidade:</strong> o CPF é omitido quando não preenchido e exibido parcialmente por padrão. WhatsApp e e-mail apenas abrem os respectivos aplicativos; o envio exige sua confirmação. Evite transmitir dados pessoais em canais não autorizados pela instituição.</div>
+          </div>
+        </section>
+        <section class="panel" id="salvamento"><div class="panel-head"><div><h2>◷ &nbsp; Continuidade do trabalho</h2><p>Armazenamento local, sem conta ou internet.</p></div></div><div class="panel-body"><label class="option-row" style="margin-top:0"><input type="checkbox" id="autosave"><span><strong>Salvar rascunho automaticamente</strong><span style="display:block;margin-top:3px">Quantidades e dados básicos ficam no aparelho, sem CPF e contatos.</span></span></label><div class="line-break" style="margin:15px 0"></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" id="openHistory" type="button">◷ &nbsp; Ver histórico</button><button class="btn small quiet" id="deleteDraft" type="button">Apagar rascunho</button></div><p class="mini-note" id="storageStatus">O histórico somente é criado ao clicar em “Salvar no histórico”.</p></div></section>
+      </div>
+    </div>
+    <p class="bottom-note">Numerário Pro é uma ferramenta auxiliar independente de contagem. A conferência oficial deve seguir os procedimentos da sua instituição.</p>
+  </main>
+</div>
+<div id="printReport" aria-hidden="true"></div>
+<div class="confetti" id="confetti" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog class="modal" id="historyDialog" aria-labelledby="historyTitle">
+  <div class="modal-head"><h2 id="historyTitle">◷ &nbsp; Histórico de fechamentos</h2><button class="btn small" id="closeHistory" type="button" aria-label="Fechar histórico">✕</button></div>
+  <div class="modal-body" id="historyList"></div>
+  <div class="modal-bottom"><span class="mini-note" id="historyCount">0 registros</span><button class="btn small danger" id="clearHistory" type="button">Excluir todo o histórico</button></div>
+</dialog>
+<script>
+(() => {
+  'use strict';
+  // Todas as operações monetárias são feitas em centavos inteiros para evitar erros de ponto flutuante.
+  const DENOMS = [
+    {id:'200', cents:20000, type:'note', label:'R$ 200', short:'200'},
+    {id:'100', cents:10000, type:'note', label:'R$ 100', short:'100'},
+    {id:'50', cents:5000, type:'note', label:'R$ 50', short:'50'},
+    {id:'20', cents:2000, type:'note', label:'R$ 20', short:'20'},
+    {id:'10', cents:1000, type:'note', label:'R$ 10', short:'10'},
+    {id:'5', cents:500, type:'note', label:'R$ 5', short:'5'},
+    {id:'2', cents:200, type:'note', label:'R$ 2', short:'2'},
+    {id:'1', cents:100, type:'coin', label:'R$ 1,00', short:'1'},
+    {id:'050', cents:50, type:'coin', label:'R$ 0,50', short:'50'},
+    {id:'025', cents:25, type:'coin', label:'R$ 0,25', short:'25'},
+    {id:'010', cents:10, type:'coin', label:'R$ 0,10', short:'10'},
+    {id:'005', cents:5, type:'coin', label:'R$ 0,05', short:'5'},
+    {id:'001', cents:1, type:'coin', label:'R$ 0,01', short:'1'}
+  ];
+  const KEY = 'numerario-pro-v2';
+  const MAX_QTY = 100000000;
+  const MOVEMENT_TYPES = Object.freeze({
+    sangria:{label:'Sangria',sign:-1},suprimento:{label:'Suprimento',sign:1},
+    saida:{label:'Outra saída',sign:-1},entrada:{label:'Outra entrada',sign:1}
+  });
+  const $ = id => document.getElementById(id);
+  const money = cents => (cents / 100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const qtyFormat = n => Number(n).toLocaleString('pt-BR');
+  const today = () => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+  const escapeHTML = text => String(text ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const getStore = key => {try{return JSON.parse(localStorage.getItem(`${KEY}-${key}`) || 'null');}catch{return null}};
+  const setStore = (key,value) => {try{localStorage.setItem(`${KEY}-${key}`, JSON.stringify(value));return true;}catch{return false;}};
+  const deleteStore = key => {try{localStorage.removeItem(`${KEY}-${key}`);return true;}catch{return false;}};
+  let filter = 'all';
+  let autosaveEnabled = false;
+  let saveTimer = null;
+  let toastTimer = null;
+  let model = null;
+  let movements = [];
+
+  // Aceita 1234,56; 1.234,56; 1234.56; e 1.234 (milhar).
+  function parseMoney(text) {
+    let s=String(text ?? '').trim().replace(/\s|R\$/gi,'');
+    if (!s) return null;
+    if (!/^[\d.,]+$/.test(s)) return null;
+    if (s.includes(',')) {
+      if (s.split(',').length!==2 || !/^\d{1,2}$/.test(s.split(',')[1])) return null;
+      const [a,b]=s.split(',');
+      if (!/^\d{1,3}(\.\d{3})*$|^\d+$/.test(a)) return null;
+      s=a.replace(/\./g,'')+'.'+b;
+    } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      s=s.replace(/\./g,'');
+    } else if (!/^\d+(?:\.\d{1,2})?$/.test(s)) return null;
+    const num=Number(s);
+    return Number.isFinite(num) && num >= 0 && num <= 1e12 ? Math.round(num*100) : null;
+  }
+  function getMoneyInput(id) {const raw=$(id).value.trim();return raw ? parseMoney(raw) : (id==='expected'?null:0);}
+  function movementBalance(){
+    const opening=getMoneyInput('openingBalance'),sales=getMoneyInput('cashSales');
+    const hasData=Boolean($('openingBalance').value.trim() || $('cashSales').value.trim() || movements.length);
+    const valid=opening!==null && sales!==null;
+    const delta=movements.reduce((sum,item)=>sum+MOVEMENT_TYPES[item.type].sign*item.cents,0);
+    const total=valid ? opening+sales+delta : null;
+    return {opening,sales,delta,total,valid,hasData};
+  }
+  function syncMovementBalance(){
+    const balance=movementBalance(),el=$('movementExpected');
+    el.textContent=!balance.valid?'Valor inválido':!balance.hasData?'—':balance.total<0?'Saldo negativo':money(balance.total);
+    el.style.color=!balance.valid || (balance.hasData && balance.total<0)?'var(--red)':'';
+    const automatic=$('autoExpected').checked;
+    $('expected').readOnly=automatic;
+    if(automatic){$('expected').value=balance.valid && balance.hasData && balance.total>=0 ? (balance.total/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : '';}
+  }
+  function renderMovements(){
+    $('movementList').innerHTML=movements.length?movements.map(item=>{
+      const type=MOVEMENT_TYPES[item.type],sign=type.sign>0?'+':'−';
+      return `<div class="movement-item"><div><strong>${escapeHTML(type.label)}</strong><small>${item.note?escapeHTML(item.note):'Sem descrição'}</small></div><span class="movement-amount ${type.sign>0?'positive':'negative'}">${sign}${money(item.cents)}</span><button type="button" class="movement-delete" data-movement-delete="${escapeHTML(item.id)}" aria-label="Excluir ${escapeHTML(type.label)}">✕</button></div>`;
+    }).join(''):'<p class="movement-empty">Nenhuma movimentação registrada.</p>';
+  }
+  function refreshMovements(){renderMovements();syncMovementBalance();change();}
+  function addMovement(){
+    const type=$('movType').value,amount=parseMoney($('movAmount').value),note=$('movNote').value.trim();
+    if(!MOVEMENT_TYPES[type] || amount===null || amount<=0){toast('Informe um valor de movimentação maior que zero.',true);$('movAmount').focus();return;}
+    if(movements.length>=50){toast('Limite de 50 movimentações por fechamento.',true);return;}
+    movements.push({id:`m${Date.now()}${Math.random().toString(36).slice(2,7)}`,type,cents:amount,note});
+    $('movAmount').value='';$('movNote').value='';refreshMovements();toast(`${MOVEMENT_TYPES[type].label} registrada.`);
+  }
+  function deleteMovement(id){
+    if(!movements.some(item=>item.id===id))return;
+    if(!confirm('Excluir esta movimentação?'))return;
+    movements=movements.filter(item=>item.id!==id);refreshMovements();toast('Movimentação excluída.');
+  }
+  function getQty(id) {const n=Number($(`qty-${id}`).value);return Number.isFinite(n)?Math.max(0,Math.min(MAX_QTY,Math.floor(n))):0;}
+  function toast(message,error=false){const el=$('toast');el.textContent=message;el.classList.toggle('error',error);el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3300);}
+  function renderRows(){
+    $('denomRows').innerHTML=DENOMS.map(d=>`<tr data-type="${d.type}"><td><div class="denom"><span class="money-icon ${d.type==='coin'?'coin':''}" aria-hidden="true">${d.short}</span><span><span class="denom-label">${d.label}</span><span class="denom-kind">${d.type==='note'?'Cédula':'Moeda'}</span></span></div></td><td><div class="stepper"><button type="button" class="step" data-action="minus" data-id="${d.id}" aria-label="Retirar uma unidade de ${d.label}">−</button><input id="qty-${d.id}" data-id="${d.id}" class="qty" inputmode="numeric" type="number" min="0" max="${MAX_QTY}" step="1" value="0" aria-label="Quantidade de ${d.label}"><button type="button" class="step" data-action="plus" data-id="${d.id}" aria-label="Adicionar uma unidade de ${d.label}">+</button></div></td><td class="subtotal zero" id="subtotal-${d.id}">R$ 0,00</td></tr>`).join('');
+    applyFilter('all');
+  }
+  function applyFilter(value){filter=value;document.querySelectorAll('#denomRows tr').forEach(row=>row.hidden=value!=='all' && row.dataset.type!==value);document.querySelectorAll('.tab').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.filter===value)));}
+  function collect(){
+    const qty={};let notes=0,coins=0,countNotes=0,countCoins=0,types=0;
+    for(const d of DENOMS){const n=getQty(d.id);qty[d.id]=n;const subtotal=n*d.cents;
+      if(d.type==='note'){notes+=subtotal;countNotes+=n;}else{coins+=subtotal;countCoins+=n;}
+      if(n>0)types++;
+    }
+    const damaged=getMoneyInput('dilacerados');const expected=getMoneyInput('expected');
+    const damagedValid=!$('dilacerados').value.trim() || damaged!==null;
+    const expectedValid=!$('expected').value.trim() || expected!==null;
+    const total=notes+coins+(damaged||0);
+    return {qty,notes,coins,countNotes,countCoins,types,damaged:damaged||0,expected,total,diff:expected===null?null:total-expected,damagedValid,expectedValid};
+  }
+  function paint(){
+    model=collect();const m=model;
+    for(const d of DENOMS){const subtotal=m.qty[d.id]*d.cents;const el=$(`subtotal-${d.id}`);el.textContent=money(subtotal);el.classList.toggle('zero',subtotal===0);}
+    $('notesAmount').textContent=money(m.notes);$('coinsAmount').textContent=money(m.coins);$('totalAmount').textContent=money(m.total);
+    $('notesNote').textContent=`${qtyFormat(m.countNotes)} cédula${m.countNotes===1?'':'s'}`;
+    $('coinsNote').textContent=`${qtyFormat(m.countCoins)} moeda${m.countCoins===1?'':'s'}`;
+    const count=m.countNotes+m.countCoins;
+    $('totalNote').textContent=`${qtyFormat(count)} unidade${count===1?'':'s'} contabilizada${count===1?'':'s'}`;
+    $('activeTypes').textContent=`${m.types} tipo${m.types===1?'':'s'}`;
+    $('countFooterText').textContent=`${qtyFormat(count)} unidade${count===1?'':'s'} em ${m.types} denominação${m.types===1?'':'ões'} · Dilacerados: ${money(m.damaged)}`;
+    const chip=$('statusChip'); chip.className='status';
+    if(!m.expectedValid || !m.damagedValid){
+      chip.classList.add('bad');chip.textContent='Valor inválido';$('diffAmount').textContent='—';$('diffNote').textContent='Revise os valores informados';$('differenceDetail').textContent='—';$('differenceMessage').textContent='Use valores positivos com até duas casas decimais.';
+    } else if(m.diff===null){
+      chip.textContent='Aguardando';$('diffAmount').textContent='—';$('diffNote').textContent='Aguardando valor esperado';$('differenceDetail').textContent='—';$('differenceMessage').textContent='Informe o valor esperado para verificar se o caixa fechou.';
+    } else if(m.diff===0){
+      chip.classList.add('ok');chip.textContent='✓ Conferido';$('diffAmount').textContent=money(0);$('diffNote').textContent='Sem diferença';$('differenceDetail').textContent=money(0);$('differenceMessage').textContent='Valor contado igual ao esperado. Caixa conciliado.';
+    } else {
+      const isOver=m.diff>0;chip.classList.add(isOver?'warn':'bad');chip.textContent=isOver?'↑ Sobra':'↓ Falta';
+      $('diffAmount').textContent=(isOver?'+':'−')+money(Math.abs(m.diff));$('diffNote').textContent=isOver?'Sobra de numerário':'Falta de numerário';
+      $('differenceDetail').textContent=(isOver?'+':'−')+money(Math.abs(m.diff));
+      $('differenceMessage').textContent=isOver?'O total contado é superior ao valor esperado.':'O total contado é inferior ao valor esperado.';
+    }
+    return m;
+  }
+  function change(){paint();queueDraft();}
+  function validateMonetaryField(event){const input=event.target;if(!input.value.trim())return;const value=parseMoney(input.value);if(value===null){input.setAttribute('aria-invalid','true');toast('Valor inválido. Use, por exemplo, 1.234,56.',true);}else{input.removeAttribute('aria-invalid');input.value=(value/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}paint();queueDraft();}
+  function formatCPF(value){let n=value.replace(/\D/g,'').slice(0,11);return n.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/(\d{3})(\d{1,2})$/,'$1-$2');}
+  function cpfForReport(){const digits=$('cpf').value.replace(/\D/g,'');if(!digits)return 'Não informado';if($('shareFullCPF').checked)return formatCPF(digits);if(digits.length===11)return `***.***.${digits.slice(6,9)}-**`;return '*** (oculto)';}
+  function meta(){return {nome:$('nome').value.trim(),data:$('data').value,atm:$('numeroATM').value.trim(),turno:$('turno').value,observacoes:$('observacoes').value.trim()};}
+  const formatDate = d => {if(!/^\d{4}-\d{2}-\d{2}$/.test(d||''))return 'Não informada';const [y,m,day]=d.split('-');return `${day}/${m}/${y}`;};
+  function reportText(){
+    const m=paint();const fields=meta();const items=DENOMS.filter(d=>m.qty[d.id]>0);
+    const lines=['CONFERÊNCIA DE NUMERÁRIO',`Data: ${formatDate(fields.data)}`,`Responsável: ${fields.nome || 'Não informado'}`,`Caixa: ${fields.atm || 'Não informado'}`,`Turno: ${fields.turno || 'Não especificado'}`,`CPF: ${cpfForReport()}`,'','DENOMINAÇÕES'];
+    if(!items.length)lines.push('Nenhuma quantidade lançada.');
+    for(const d of items)lines.push(`${d.label} | ${qtyFormat(m.qty[d.id])} un. | ${money(d.cents*m.qty[d.id])}`);
+    lines.push('',`Total cédulas: ${money(m.notes)} (${qtyFormat(m.countNotes)} un.)`,`Total moedas: ${money(m.coins)} (${qtyFormat(m.countCoins)} un.)`,`Dilacerados (adicionais): ${money(m.damaged)}`,`TOTAL APURADO: ${money(m.total)}`);
+    const balance=movementBalance();
+    if(balance.hasData){
+      lines.push('','MOVIMENTAÇÕES DO TURNO',`Saldo inicial: ${money(balance.opening)}`,`Vendas em dinheiro: ${money(balance.sales)}`);
+      for(const item of movements)lines.push(`${MOVEMENT_TYPES[item.type].label}: ${MOVEMENT_TYPES[item.type].sign>0?'+':'−'}${money(item.cents)}${item.note?' | '+item.note:''}`);
+      lines.push(`Saldo esperado calculado: ${money(balance.total)}`);
+    }
+    if(m.expected!==null)lines.push(`Valor esperado: ${money(m.expected)}`,`Diferença: ${m.diff>0?'SOBRA ':m.diff<0?'FALTA ':'SEM DIFERENÇA '}${money(Math.abs(m.diff))}`);
+    if(fields.observacoes)lines.push('',`Observações: ${fields.observacoes}`);
+    lines.push('','Relatório auxiliar de conferência de numerário.');return lines.join('\n');
+  }
+  function reportPrintable(){
+    const m=paint();const fields=meta();
+    const fieldsHTML=[['Data',formatDate(fields.data)],['Responsável',fields.nome||'Não informado'],['Caixa',fields.atm||'Não informado'],['Turno',fields.turno||'Não especificado'],['CPF',cpfForReport()]];
+    const items=DENOMS.filter(d=>m.qty[d.id]>0);
+    const rows=(items.length?items.map(d=>`<tr><td>${escapeHTML(d.label)} · ${d.type==='note'?'Cédula':'Moeda'}</td><td>${qtyFormat(m.qty[d.id])}</td><td>${money(d.cents*m.qty[d.id])}</td></tr>`).join(''):'<tr><td colspan="3">Nenhuma denominação preenchida</td></tr>');
+    $('printReport').innerHTML=`<div class="pr-head"><div><h1>Conferência de numerário</h1><div class="muted">Demonstrativo de contagem e conciliação</div></div><div class="pr-stamp">Numerário Pro<br>Gerado em ${new Date().toLocaleString('pt-BR')}</div></div><div class="pr-data">${fieldsHTML.map(([l,v])=>`<div><span>${escapeHTML(l)}</span><strong>${escapeHTML(v)}</strong></div>`).join('')}</div><table><thead><tr><th>Denominação</th><th>Quantidade</th><th>Subtotal</th></tr></thead><tbody>${rows}</tbody></table><div class="pr-data"><div><span>Total em cédulas</span><strong>${money(m.notes)} · ${qtyFormat(m.countNotes)} un.</strong></div><div><span>Total em moedas</span><strong>${money(m.coins)} · ${qtyFormat(m.countCoins)} un.</strong></div><div><span>Dilacerados (adicionais)</span><strong>${money(m.damaged)}</strong></div><div><span>Valor esperado</span><strong>${m.expected===null?'Não informado':money(m.expected)}</strong></div><div><span>Diferença de caixa</span><strong>${m.diff===null?'Não calculada':(m.diff>0?'Sobra · ':m.diff<0?'Falta · ':'Sem diferença · ')+money(Math.abs(m.diff))}</strong></div></div><div class="pr-total"><span>TOTAL APURADO</span><span>${money(m.total)}</span></div>${fields.observacoes?`<p><strong>Observações:</strong> ${escapeHTML(fields.observacoes)}</p>`:''}<div class="pr-foot">Relatório auxiliar independente. Valide o fechamento conforme os procedimentos oficiais da instituição.<br>________________________________________<br>Assinatura / conferente</div>`;
+    const balance=movementBalance();
+    if(balance.hasData){
+      const items=movements.map(item=>`<tr><td>${escapeHTML(MOVEMENT_TYPES[item.type].label)}${item.note?' · '+escapeHTML(item.note):''}</td><td></td><td>${MOVEMENT_TYPES[item.type].sign>0?'+':'−'}${money(item.cents)}</td></tr>`).join('');
+      const extra=`<h2>Movimentações do turno</h2><table><tbody><tr><td>Saldo inicial</td><td></td><td>${money(balance.opening)}</td></tr><tr><td>Vendas em dinheiro</td><td></td><td>+${money(balance.sales)}</td></tr>${items}<tr><td><strong>Saldo esperado calculado</strong></td><td></td><td><strong>${money(balance.total)}</strong></td></tr></tbody></table>`;
+      $('printReport').innerHTML=$('printReport').innerHTML.replace('<div class="pr-total">',extra+'<div class="pr-total">');
+    }
+  }
+  async function copyText(){const text=reportText();if(window.NumerarioAndroid){window.NumerarioAndroid.copyText(text);toast('Resumo copiado para a área de transferência.');return;}try{if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text);}else{const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();if(!document.execCommand('copy'))throw Error('not copied');ta.remove();}toast('Resumo copiado para a área de transferência.');}catch{toast('Cópia não disponível neste navegador. Use Imprimir / PDF.',true);}}
+  function safeCSVCell(v){let t=String(v??'');if(/^[\s]*[=+@-]/.test(t))t="'"+t;return '"'+t.replace(/"/g,'""')+'"';}
+  function csvExport(){
+    const m=paint(),f=meta(),rows=[['Categoria','Denominação','Quantidade','Subtotal (R$)']];
+    for(const d of DENOMS){rows.push([d.type==='note'?'Cédula':'Moeda',d.label,m.qty[d.id],(d.cents*m.qty[d.id]/100).toFixed(2).replace('.',',')]);}
+    rows.push([],['Resumo','Total cédulas','',money(m.notes)],['Resumo','Total moedas','',money(m.coins)],['Resumo','Dilacerados','',money(m.damaged)],['Resumo','TOTAL APURADO','',money(m.total)],['Resumo','Valor esperado','',m.expected===null?'':money(m.expected)],['Resumo','Diferença','',m.diff===null?'':money(m.diff)],[],['Dados','Data','',formatDate(f.data)],['Dados','Responsável','',f.nome],['Dados','Caixa','',f.atm],['Dados','CPF','',cpfForReport()],['Dados','Observações','',f.observacoes]);
+    rows.push(['Dados','Turno','',f.turno||'Não especificado']);
+    const balance=movementBalance();
+    if(balance.hasData){
+      rows.push([],['Movimentação','Saldo inicial','',money(balance.opening)],['Movimentação','Vendas em dinheiro','',money(balance.sales)]);
+      for(const item of movements)rows.push(['Movimentação',MOVEMENT_TYPES[item.type].label,item.note,`${MOVEMENT_TYPES[item.type].sign>0?'+':'−'}${money(item.cents)}`]);
+      rows.push(['Movimentação','Saldo esperado calculado','',money(balance.total)]);
+    }
+    const csv='\ufeff'+rows.map(r=>r.map(safeCSVCell).join(';')).join('\r\n');
+    const filename=`Conferencia_Numerario_${f.data||today()}.csv`;
+    if(window.NumerarioAndroid){window.NumerarioAndroid.saveCsv(filename,csv);toast('Escolha onde salvar seu relatório CSV.');return;}
+    const link=document.createElement('a');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);toast('Arquivo CSV gerado.');
+  }
+  function ensureValid(){const m=paint(),balance=movementBalance();if(!m.damagedValid||!m.expectedValid||!balance.valid){toast('Corrija os valores monetários inválidos antes de continuar.',true);return false;}if($('autoExpected').checked && balance.hasData && balance.total<0){toast('Saldo esperado negativo. Revise as movimentações.',true);return false;}return true;}
+  function openWhatsApp(){if(!ensureValid())return;const raw=$('phoneNumber').value.replace(/\D/g,'');let destination='';if(raw){const phone=raw.startsWith('55')?raw:'55'+raw;if(phone.length<12||phone.length>13){toast('Número de WhatsApp inválido. Inclua DDD e número.',true);return;}destination=`phone=${phone}&`;}const url=`https://api.whatsapp.com/send?${destination}text=${encodeURIComponent(reportText())}`;if(window.NumerarioAndroid)window.NumerarioAndroid.openExternal(url);else window.open(url,'_blank','noopener,noreferrer');toast('WhatsApp aberto para revisar e enviar a mensagem.');}
+  function openEmail(){if(!ensureValid())return;const email=$('email').value.trim();if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Informe um endereço de e-mail válido.',true);return;}const f=meta();const subject=`Conferência de numerário — ${formatDate(f.data)}`;const url=`mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(reportText())}`;if(window.NumerarioAndroid)window.NumerarioAndroid.openExternal(url);else window.location.href=url;}
+  function getPersistable(){const m=paint();const f=meta();return {qty:m.qty,damaged:$('dilacerados').value,expected:$('expected').value,openingBalance:$('openingBalance').value,cashSales:$('cashSales').value,autoExpected:$('autoExpected').checked,movements:movements.map(item=>({...item})),...f};}
+  function applySaved(saved){if(!saved || typeof saved!=='object')return;
+    for(const d of DENOMS){const n=Number(saved.qty?.[d.id]);$(`qty-${d.id}`).value=Number.isFinite(n)?Math.max(0,Math.min(MAX_QTY,Math.floor(n))):0;}
+    for(const [id,key] of [['nome','nome'],['data','data'],['numeroATM','atm'],['observacoes','observacoes'],['dilacerados','damaged'],['expected','expected'],['openingBalance','openingBalance'],['cashSales','cashSales']])$(id).value=String(saved[key]??'');
+    $('turno').value=['Manhã','Tarde','Noite','Integral'].includes(saved.turno)?saved.turno:'';
+    movements=(Array.isArray(saved.movements)?saved.movements:[]).slice(0,50).filter(item=>item && MOVEMENT_TYPES[item.type] && Number.isSafeInteger(item.cents) && item.cents>0 && item.cents<=1e14).map(item=>({id:/^m[a-z0-9]{4,32}$/i.test(String(item.id))?String(item.id):`m${Date.now()}${Math.random().toString(36).slice(2,7)}`,type:item.type,cents:item.cents,note:String(item.note??'').slice(0,100)}));
+    $('autoExpected').checked=saved.autoExpected===true;
+    $('cpf').value='';$('phoneNumber').value='';$('email').value='';$('shareFullCPF').checked=false;renderMovements();syncMovementBalance();paint();queueDraft();
+  }
+  function queueDraft(){if(!autosaveEnabled)return;clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(setStore('draft',getPersistable()))$('storageStatus').textContent='Rascunho atualizado neste navegador (sem CPF e contatos).';else $('storageStatus').textContent='Não foi possível armazenar o rascunho neste navegador.';},240);}
+  function toggleAutosave(checked){autosaveEnabled=checked;setStore('settings',{autosave:checked,theme:document.documentElement.dataset.theme});if(checked){queueDraft();toast('Salvamento local ativado (sem CPF e contatos).');}else{clearTimeout(saveTimer);deleteStore('draft');$('storageStatus').textContent='Rascunho local desativado e apagado.';toast('Salvamento desativado e rascunho apagado.');}}
+  function getHistory(){const data=getStore('history');return Array.isArray(data)?data:[];}
+  function saveHistory(){if(!ensureValid())return;const snapshot=getPersistable();const rec={id:`${Date.now()}-${Math.random().toString(36).slice(2,8)}`,savedAt:new Date().toISOString(),...snapshot,total:paint().total,diff:paint().diff};const history=[rec,...getHistory()].slice(0,25);if(setStore('history',history)){toast('Fechamento salvo no histórico deste dispositivo.');renderHistory();}else toast('Não foi possível salvar o histórico neste navegador.',true);}
+  function renderHistory(){const history=getHistory();$('historyCount').textContent=`${history.length} registro${history.length===1?'':'s'} (máx. 25)`;
+    $('historyList').innerHTML=history.length?history.map(h=>{const d=new Date(h.savedAt);const title=Number.isFinite(h.total)?money(h.total):'Registro';const totalDate=Number.isNaN(d.valueOf())?'Data desconhecida':d.toLocaleString('pt-BR');return `<div class="history-item"><div class="history-item-top"><div><strong>${escapeHTML(title)}</strong><small>${escapeHTML(totalDate)} · ${escapeHTML(h.atm||'Caixa não informado')}</small><small>${escapeHTML(h.nome||'Sem responsável')} · ${escapeHTML(h.turno||'Sem turno')} · ${escapeHTML(formatDate(h.data))}</small></div><span class="status ${h.diff===0?'ok':h.diff===null?'':h.diff>0?'warn':'bad'}">${h.diff===null?'Sem conciliação':h.diff===0?'Conciliado':h.diff>0?'Sobra':'Falta'}</span></div><div class="history-actions"><button type="button" class="btn small" data-restore="${escapeHTML(h.id)}">↶ Restaurar</button><button type="button" class="btn small danger" data-delete="${escapeHTML(h.id)}">✕ Excluir</button></div></div>`;}).join(''):'<div class="empty-state"><span class="symbol">◷</span><strong>Nenhum fechamento salvo</strong><p>Use “Salvar no histórico” após conferir seu caixa.</p></div>';
+  }
+  function historyOpen(){renderHistory();if(typeof $('historyDialog').showModal==='function')$('historyDialog').showModal();else $('historyDialog').setAttribute('open','');}
+  function historyClose(){if(typeof $('historyDialog').close==='function')$('historyDialog').close();else $('historyDialog').removeAttribute('open');}
+  function newClosure(){if(!confirm('Criar um novo fechamento? As informações atuais não salvas serão apagadas.'))return;for(const d of DENOMS)$(`qty-${d.id}`).value=0;for(const id of ['nome','numeroATM','cpf','observacoes','dilacerados','expected','openingBalance','cashSales','movAmount','movNote','phoneNumber','email'])$(id).value='';$('data').value=today();$('turno').value='';$('autoExpected').checked=false;$('shareFullCPF').checked=false;movements=[];refreshMovements();toast('Novo fechamento iniciado.');window.scrollTo({top:0,behavior:'smooth'});}
+  function zeroCount(){if(!confirm('Zerar apenas as quantidades e dilacerados? Os demais dados serão mantidos.'))return;for(const d of DENOMS)$(`qty-${d.id}`).value=0;$('dilacerados').value='';change();toast('Quantidades zeradas.');}
+  function celebrate(){const holder=$('confetti');holder.innerHTML='';if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const colors=['#4e74f5','#4bd3b2','#ffcf65','#ee7a9b','#8ac8fc'];for(let i=0;i<75;i++){const conf=document.createElement('i');conf.style.left=`${Math.random()*100}%`;conf.style.background=colors[i%colors.length];conf.style.setProperty('--dur',`${2.2+Math.random()*1.7}s`);conf.style.setProperty('--delay',`${Math.random()*.5}s`);conf.style.setProperty('--drift',`${Math.round(Math.random()*280-140)}px`);conf.style.setProperty('--rot',`${Math.round(Math.random()*1200)}deg`);holder.appendChild(conf);}setTimeout(()=>holder.replaceChildren(),4400);}
+  function validateClosure(){if(!ensureValid())return;const m=paint();if(m.diff===null){toast('Informe o valor esperado para validar o fechamento.',true);$('expected').focus();return;}if(m.diff===0){celebrate();toast('✓ Caixa fechado! Total e valor esperado conferem.');}else{toast(`${m.diff>0?'Há uma sobra':'Há uma falta'} de ${money(Math.abs(m.diff))}. Revise a contagem.`,true);}}
+  function toggleTheme(){const theme=document.documentElement.dataset.theme==='light'?'dark':'light';setTheme(theme);setStore('settings',{theme,autosave:autosaveEnabled});}
+  function setTheme(theme){document.documentElement.dataset.theme=theme==='dark'?'dark':'light';$('themeIcon').textContent=theme==='dark'?'☀':'☾';$('themeText').textContent=theme==='dark'?'Claro':'Escuro';document.querySelector('meta[name="theme-color"]').setAttribute('content',theme==='dark'?'#0b1220':'#f3f6fb');}
+  function init(){
+    renderRows();$('data').value=today();const settings=getStore('settings')||{};setTheme(settings.theme==='dark'?'dark':'light');
+    autosaveEnabled=settings.autosave!==false;$('autosave').checked=autosaveEnabled;
+    if(autosaveEnabled){const draft=getStore('draft');if(draft){applySaved(draft);$('storageStatus').textContent='Último rascunho recuperado deste navegador.';}}
+    renderMovements();syncMovementBalance();
+    paint();
+    $('denomRows').addEventListener('input',event=>{if(!event.target.classList.contains('qty'))return;change();});
+    $('denomRows').addEventListener('change',event=>{if(!event.target.classList.contains('qty'))return;const input=event.target;input.value=getQty(input.dataset.id);change();});
+    $('denomRows').addEventListener('click',event=>{const btn=event.target.closest('[data-action]');if(!btn)return;const input=$(`qty-${btn.dataset.id}`);const delta=btn.dataset.action==='plus'?1:-1;input.value=Math.max(0,Math.min(MAX_QTY,getQty(btn.dataset.id)+delta));change();});
+    $('denomRows').addEventListener('keydown',event=>{if(event.key!=='Enter'||!event.target.classList.contains('qty'))return;event.preventDefault();const list=[...document.querySelectorAll('#denomRows tr:not([hidden]) .qty')];const next=list[list.indexOf(event.target)+1]||list[0];if(next){next.focus();next.select();}});
+    document.querySelectorAll('[data-filter]').forEach(btn=>btn.addEventListener('click',()=>applyFilter(btn.dataset.filter)));
+    for(const id of ['dilacerados','expected']){$(id).addEventListener('input',change);$(id).addEventListener('blur',validateMonetaryField);}
+    for(const id of ['openingBalance','cashSales']){$(id).addEventListener('input',()=>{syncMovementBalance();change();});$(id).addEventListener('blur',event=>{validateMonetaryField(event);syncMovementBalance();change();});}
+    $('autoExpected').addEventListener('change',()=>{syncMovementBalance();change();});
+    $('addMovement').addEventListener('click',addMovement);
+    $('movAmount').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();addMovement();}});
+    $('movementList').addEventListener('click',event=>{const btn=event.target.closest('[data-movement-delete]');if(btn)deleteMovement(btn.dataset.movementDelete);});
+    document.querySelectorAll('.persistable:not(#dilacerados):not(#expected)').forEach(input=>input.addEventListener('input',queueDraft));
+    $('cpf').addEventListener('input',()=>{$('cpf').value=formatCPF($('cpf').value);});
+    $('phoneNumber').addEventListener('input',()=>{const input=$('phoneNumber');let digits=input.value.replace(/\D/g,'').slice(0,13);if(digits.startsWith('55')&&digits.length>=12)digits=digits.slice(2);if(digits.length>11)digits=digits.slice(0,11);input.value=digits.length>2?`(${digits.slice(0,2)}) ${digits.slice(2,7)}${digits.length>7?'-'+digits.slice(7):''}`:digits;});
+    $('clearQuantities').addEventListener('click',zeroCount);$('clearQuantitiesBottom').addEventListener('click',zeroCount);
+    $('newClosure').addEventListener('click',newClosure);$('validateClosure').addEventListener('click',validateClosure);
+    $('copyReport').addEventListener('click',()=>{if(ensureValid())copyText();});
+    $('exportCSV').addEventListener('click',()=>{if(ensureValid())csvExport();});
+    $('printReportBtn').addEventListener('click',()=>{if(!ensureValid())return;reportPrintable();if(window.NumerarioAndroid)window.NumerarioAndroid.printReport();else window.print();});
+    window.addEventListener('beforeprint',reportPrintable);
+    $('sendWhatsApp').addEventListener('click',openWhatsApp);$('sendEmail').addEventListener('click',openEmail);
+    $('saveHistory').addEventListener('click',saveHistory);
+    ['topHistory','sideHistory','openHistory'].forEach(id=>$(id).addEventListener('click',event=>{event.preventDefault();historyOpen();}));
+    $('closeHistory').addEventListener('click',historyClose);
+    $('historyDialog').addEventListener('click',event=>{if(event.target===$('historyDialog'))historyClose();});
+    $('historyList').addEventListener('click',event=>{const restore=event.target.closest('[data-restore]');const del=event.target.closest('[data-delete]');if(restore){const h=getHistory().find(x=>x.id===restore.dataset.restore);if(!h)return;if(!confirm('Restaurar este fechamento? Os dados atuais não salvos serão substituídos.'))return;applySaved(h);historyClose();toast('Fechamento restaurado.');}if(del){if(!confirm('Excluir permanentemente este registro?'))return;setStore('history',getHistory().filter(x=>x.id!==del.dataset.delete));renderHistory();toast('Registro excluído.');}});
+    $('clearHistory').addEventListener('click',()=>{if(!getHistory().length)return;if(!confirm('Excluir todos os fechamentos salvos neste navegador? Esta ação não pode ser desfeita.'))return;deleteStore('history');renderHistory();toast('Histórico local excluído.');});
+    $('autosave').addEventListener('change',event=>toggleAutosave(event.target.checked));
+    $('deleteDraft').addEventListener('click',()=>{if(!confirm('Apagar o rascunho local salvo?'))return;clearTimeout(saveTimer);deleteStore('draft');if(autosaveEnabled){autosaveEnabled=false;$('autosave').checked=false;setStore('settings',{theme:document.documentElement.dataset.theme,autosave:false});}$('storageStatus').textContent='Rascunho local apagado. Salvamento automático desativado.';toast('Rascunho local apagado.');});
+    $('themeToggle').addEventListener('click',toggleTheme);
+    document.querySelectorAll('.nav a[href^="#"]:not(#sideHistory)').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav a').forEach(link=>link.classList.remove('active'));a.classList.add('active');}));
+    document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveHistory();}});
+  }
+  init();
+})();
+</script>
+</body>
+</html>
